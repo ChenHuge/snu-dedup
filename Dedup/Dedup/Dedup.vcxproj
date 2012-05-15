@@ -103,7 +103,9 @@
     <ClInclude Include="ChunkManager.h" />
     <ClInclude Include="Dedup.h" />
     <ClInclude Include="DedupDlg.h" />
+    <ClInclude Include="Manifest.h" />
     <ClInclude Include="ManifestStore.h" />
+    <ClInclude Include="ManiNode.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SHA1.h" />
     <ClInclude Include="stdafx.h" />
@@ -114,7 +116,9 @@
     <ClCompile Include="ChunkManager.cpp" />
     <ClCompile Include="Dedup.cpp" />
     <ClCompile Include="DedupDlg.cpp" />
+    <ClCompile Include="Manifest.cpp" />
     <ClCompile Include="ManifestStore.cpp" />
+    <ClCompile Include="ManiNode.cpp" />
     <ClCompile Include="SHA1.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
