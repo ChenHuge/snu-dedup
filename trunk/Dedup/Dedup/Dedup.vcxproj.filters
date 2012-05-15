@@ -51,6 +51,12 @@
     <ClInclude Include="ManifestStore.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="ManiNode.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Manifest.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Dedup.cpp">
@@ -72,6 +78,12 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="ManifestStore.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="ManiNode.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Manifest.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

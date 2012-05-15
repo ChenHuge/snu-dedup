@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include "ChunkContainer.h"
+#include "ManifestStore.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -101,7 +102,16 @@ BOOL CDedupDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 작은 아이콘을 설정합니다.
 
 	// TODO: 여기에 추가 초기화 작업을 추가합니다.
-	
+	ManifestStore ms;
+	Manifest mf("a.mp3\\m4.txt");
+	mf.addManiNode(ManiNode("ccc", "aa", 1234, 23525));
+	mf.addManiNode(ManiNode("bbbbbbbb", "aa", 1234, 23525));
+	ms.createManifest(mf);
+
+	vector<string> cn;
+	cn.push_back("a.mp3\\m2.txt");
+	cn.push_back("a.mp3\\m3.txt");
+	list<Manifest> champ = ms.loadChampions(cn);
 
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
