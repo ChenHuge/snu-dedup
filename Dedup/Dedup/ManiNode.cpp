@@ -11,7 +11,7 @@ ManiNode::ManiNode(string hash_key_)
 	ManiNode(hash_key_, "", 0, 0);
 }
 
-ManiNode::ManiNode(string hash_key_, string container_, long int position_, size_t length_)
+ManiNode::ManiNode(string hash_key_, string container_, fpos_t position_, size_t length_)
 {
 	setHashKey(hash_key_);
 	setContainer(container_);
@@ -36,7 +36,7 @@ void ManiNode::setContainer(string container_)
 }
 
 
-void ManiNode::setPosition(long int position_)
+void ManiNode::setPosition(fpos_t position_)
 {
 	position = position_;
 }
@@ -60,7 +60,7 @@ string ManiNode::getContainer(void)
 }
 
 
-long int ManiNode::getPosition(void)
+fpos_t ManiNode::getPosition(void)
 {
 	return position;
 }

@@ -31,13 +31,19 @@ public:
 	   이 메서드는 사용하지 말라. char* filename만을 인자로 받는 같은 이름의 메서드가
 	   오버라이딩되어있으므로, 그것을 사용하라. 해당 메서드는 이 메서드에서
 	   GET_CHUNK_ONLY 옵션을 준 것과 동일한 역할을 한다. */
-	vector<char*> getChunkList(char* filename, int opt);
+	vector<char*> getChunkList(const char* filename, int opt);
 
 	/* 인자로 들어온 청크리스트의 청크 목록을 보여준다. 옵션으로 SHOW_ALL을 주면
 	   청크를 실제 모습 그대로 출력하며, SHOW_ARRANGED를 주면 부분적으로 정리하여
 	   앞 부분만 보여준다. 인자로는 ADD_INFO을 통해 얻어진 리스트를 넣어야 올바로 출력된다.
 	   특별한 이유가 없으면 SHOW_ARRANGED 옵션으로 사용하기를 권한다.
-	   인자로 hashed list를 넣을 경우, 옵션으로 SHOW_HASHLIST를 사용하라. */
+	   인자로 hashed lischunkList, char* filename);
+
+	/* 원본 파일명과 복사될 파일명을 인자로 주면, 원본 파일을 청킹하여 청크리스트를 만든 뒤,
+	   해당 청크 리스트를 복사될 파일명을 갖는 파일로 다시 써서 복구하는 메서드이다. */
+	void copyStream(char* src, char* dst);
+
+	//list를 넣을 경우, 옵션으로 SHOW_HASHLIST를 사용하라. */
 	void showChunkList(vector<char*> chunkList, int opt);
 
 	/* 청크리스트를 다시 파일로 기록하여 복원할때 사용한다. 단, 기록될 청크리스트는
@@ -46,17 +52,13 @@ public:
 	   원본과 동일할 것을 보장할 수 없다.	*/
 	void writeChunkList(vector<char*> chunkList, char* filename);
 
-	/* 원본 파일명과 복사될 파일명을 인자로 주면, 원본 파일을 청킹하여 청크리스트를 만든 뒤,
-	   해당 청크 리스트를 복사될 파일명을 갖는 파일로 다시 써서 복구하는 메서드이다. */
-	void copyStream(char* src, char* dst);
-
 	/* 데이터를 받아서 SHA-1에 따른 해시 값을 반환하는 메서드이다. */
 	char* getHashKey(char* data);
 
 	/* 인자로 전달된 리스트의 모든 chunk들에 대한 SHA-1 해시 값을 구해 리스트를 만들어 반환한다. */
-	vector<char*> getHashedList(vector<char*> list);
+	vector<char*> getHashedList(vector<char*>* list);
 
-	vector<char*> getSegment(vector<char*> list, int index);
+	vector<char*> getSegment(vector<char*>* list, int index);
 };
 
 #endif
