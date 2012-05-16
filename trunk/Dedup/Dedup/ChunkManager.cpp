@@ -16,7 +16,7 @@ ChunkManager::ChunkManager(int CS, int SS)
 	   이 메서드는 사용하지 말라. char* filename만을 인자로 받는 같은 이름의 메서드가
 	   오버라이딩되어있으므로, 그것을 사용하라. 해당 메서드는 이 메서드에서
 	   GET_CHUNK_ONLY 옵션을 준 것과 동일한 역할을 한다. */
-vector<char*> ChunkManager::getChunkList(char* filename, int opt) 
+vector<char*> ChunkManager::getChunkList(const char* filename, int opt) 
 {
 	FILE *fp;
 	vector<char*> chunkList;
@@ -175,34 +175,34 @@ char* ChunkManager::getHashKey(char* data) {
 }
 
 /* 인자로 전달된 리스트의 모든 chunk들에 대한 SHA-1 해시 값을 구해 리스트를 만들어 반환한다. */
-vector<char*> ChunkManager::getHashedList(vector<char*> list) {
+vector<char*> ChunkManager::getHashedList(vector<char*>* list) {
 	vector<char*> hashedList;
-	int size = list.size();
-	if(list.empty()) 
+	int size = list->size();
+	if(list->empty()) 
 		printf("List is empty.\n");
 	else 
 		for(int i=0; i<size; i++)
-			hashedList.push_back(getHashKey(list[i]));
+			hashedList.push_back(getHashKey((*list)[i]));
 
 	return hashedList;
 }
 
-vector<char*> ChunkManager::getSegment(vector<char*> list, int index) {
+vector<char*> ChunkManager::getSegment(vector<char*>* list, int index) {
 	/* index가 0이면 0~7번 청크.
 		index가 1이면 8~15번 청크.
 		index가 2이면 16~23번 청크.
 		index가 k이면 k*segmentSize~k*segmentSize+segmentSize-1번 청크. */
 	vector<char*> segment;
-	int size = list.size();
-	if(list.empty())
-		printf("List is empty.\n");
+	int size = list->size();
+	if(list->empty())
+		return segment;
 	else if(index*segmentSize >= size) {
-		printf("Invalid index.\n");
+		return segment;
 	}
 	else
 		for(int i=index*segmentSize; i<index*segmentSize+segmentSize; i++) {
 			if(i >= size) break;
-			segment.push_back(list[i]);
+			segment.push_back((*list)[i]);
 		}
 
 	return segment;

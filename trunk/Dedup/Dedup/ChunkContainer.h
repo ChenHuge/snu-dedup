@@ -17,7 +17,8 @@ private:
 
 public:
 	bool openContainer(string c_name);
-	size_t writeChunk(char* chunk);
+	size_t writeChunk(char* chunk, int chunkSize);
 	void closeContainer(void);
+	fpos_t getCurPos(void);
 };
 

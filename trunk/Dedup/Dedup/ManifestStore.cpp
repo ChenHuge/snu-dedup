@@ -31,7 +31,7 @@ list<Manifest> ManifestStore::loadChampions(vector<string> chap_names)
 		Manifest manifest(chap_names[i]);
 
 		string hash, cont;
-		long int pos;
+		fpos_t pos;
 		size_t length;
 
 		while (fin >> hash >> cont >> pos >> length) {

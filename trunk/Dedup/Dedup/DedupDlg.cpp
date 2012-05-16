@@ -8,7 +8,10 @@
 #include "afxdialogex.h"
 
 #include <iostream>
+#include <sstream>
+#include <math.h>
 #include "ChunkContainer.h"
+#include "ChunkManager.h"
 #include "ManifestStore.h"
 
 #ifdef _DEBUG
@@ -62,10 +65,6 @@ CDedupDlg::CDedupDlg(CWnd* pParent /*=NULL*/)
 	, mv_Path(_T(""))
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
-	/*mv_ChunkSize = _T("4");
-	mv_SegSize = _T("8");
-	mv_SIEntrySize = _T("10");
-	mv_SIEntryNum = _T("100");*/
 }
 
 void CDedupDlg::DoDataExchange(CDataExchange* pDX)
@@ -233,11 +232,61 @@ void CDedupDlg::OnBnClickedBtnDir()
 void CDedupDlg::OnBnClickedBtnStart()
 {
 	UpdateData();
-	chunkSize = _ttoi(mv_ChunkSize);
+	chunkSize = _ttoi(mv_ChunkSize) * 1024;
 	segSize = _ttoi(mv_SegSize);
 	smpRate = _ttoi(mv_SmpRate);
 	siEntrySize = _ttoi(mv_SIEntrySize);
 	siEntryNum = _ttoi(mv_SIEntryNum);
 
+	if (mv_Path == _T("")) {
+		MessageBox(_T("폴더 경로를 지정해주세요."), MB_OK);
+		return;
+	}
 
+	string filepath = "C:\\PGUpgrade.log";
+
+	ChunkManager chkMng(chunkSize, segSize);
+	vector<char*> chunkList = chkMng.getChunkList(filepath.c_str(), ADD_INFO);
+	vector<char*>::iterator iter = chunkList.end();
+	iter--;
+	int LL = atoi(*iter);
+	chunkList.pop_back();
+
+	vector<char*> hashList = chkMng.getHashedList(&chunkList);
+	
+	ChunkContainer container;
+	string contName = "ChunkContainer1";
+	container.openContainer(contName);
+
+	ManifestStore maniStore;
+
+	int numOfSeg = ceil((double)chunkList.size() / (double)segSize);
+
+	for (int segNum = 0 ; segNum < numOfSeg ; segNum++) {
+		vector<char*> segment = chkMng.getSegment(&chunkList, segNum);
+		vector<char*> hooks = chkMng.getSegment(&hashList, segNum);
+
+		stringstream sstr;
+		sstr << segNum ;
+		string maniNum = sstr.str();
+		Manifest manifest("PGUpgrade.log__m" + maniNum);
+
+		for (int j = 0 ; j < segment.size() ; j++) {
+			fpos_t pos = container.getCurPos();
+
+			size_t writeSize;
+			if (segNum == numOfSeg-1 && j == segment.size() - 1) 
+				writeSize = container.writeChunk(segment[j], LL);
+			else
+				writeSize = container.writeChunk(segment[j], chunkSize);
+
+			ManiNode node((string(hooks[j])), contName, pos, writeSize);
+			manifest.addManiNode(node);
+		}
+
+		maniStore.createManifest(manifest);
+		segNum++;
+	}
+
+	container.closeContainer();
 }
