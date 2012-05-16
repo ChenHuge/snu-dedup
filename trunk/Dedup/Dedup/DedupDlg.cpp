@@ -54,19 +54,37 @@ END_MESSAGE_MAP()
 
 CDedupDlg::CDedupDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(CDedupDlg::IDD, pParent)
+	, mv_ChunkSize(_T("4"))
+	, mv_SegSize(_T("8"))
+	, mv_SmpRate(_T("50"))
+	, mv_SIEntrySize(_T("10"))
+	, mv_SIEntryNum(_T("100"))
+	, mv_Path(_T(""))
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+	/*mv_ChunkSize = _T("4");
+	mv_SegSize = _T("8");
+	mv_SIEntrySize = _T("10");
+	mv_SIEntryNum = _T("100");*/
 }
 
 void CDedupDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Text(pDX, IDC_EDIT_CHKSIZE, mv_ChunkSize);
+	DDX_Text(pDX, IDC_EDIT_SEGSIZE, mv_SegSize);
+	DDX_Text(pDX, IDC_EDIT_SPLRATE, mv_SmpRate);
+	DDX_Text(pDX, IDC_EDIT_ENTRYSIZE, mv_SIEntrySize);
+	DDX_Text(pDX, IDC_EDIT_ENTRYNUM, mv_SIEntryNum);
+	DDX_Text(pDX, IDC_EDIT_DIR, mv_Path);
 }
 
 BEGIN_MESSAGE_MAP(CDedupDlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
+	ON_BN_CLICKED(IDC_BTN_DIR, &CDedupDlg::OnBnClickedBtnDir)
+	ON_BN_CLICKED(IDC_BTN_START, &CDedupDlg::OnBnClickedBtnStart)
 END_MESSAGE_MAP()
 
 
@@ -102,16 +120,32 @@ BOOL CDedupDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 작은 아이콘을 설정합니다.
 
 	// TODO: 여기에 추가 초기화 작업을 추가합니다.
-	ManifestStore ms;
-	Manifest mf("a.mp3\\m4.txt");
+
+	//ManifestStore 폴더가 존재하는지 확인. 없으면 생성
+	CFileFind pFind;
+	CString strFile = L"*.*";
+    BOOL bRet = pFind.FindFile(L"ManifestStore\\" + strFile);
+	if (!bRet) {
+		bRet = CreateDirectory(L"ManifestStore\\", NULL);
+		if (!bRet) {
+			cerr << "ERROR: fail to create a folder 'ManifestStore'" << endl;
+			exit(1);
+		}
+	}
+
+	
+
+	/*ManifestStore ms;
+	Manifest mf("a.mp3__m4.txt");
 	mf.addManiNode(ManiNode("ccc", "aa", 1234, 23525));
 	mf.addManiNode(ManiNode("bbbbbbbb", "aa", 1234, 23525));
 	ms.createManifest(mf);
 
 	vector<string> cn;
-	cn.push_back("a.mp3\\m2.txt");
-	cn.push_back("a.mp3\\m3.txt");
-	list<Manifest> champ = ms.loadChampions(cn);
+	cn.push_back("a.mp3__m4.txt");
+	list<Manifest> champ = ms.loadChampions(cn);*/
+
+
 
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
@@ -165,3 +199,45 @@ HCURSOR CDedupDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+
+
+void CDedupDlg::OnBnClickedBtnDir()
+{
+	CString strFolder = _T("");
+	ITEMIDLIST* pidlBrowse;
+    TCHAR initPath[MAX_PATH];
+	TCHAR str[MAX_PATH];
+	SHGetSpecialFolderPath(NULL, initPath, CSIDL_DESKTOP, FALSE);
+    BROWSEINFO brInfo;
+
+	memset(&brInfo, 0x00, sizeof(BROWSEINFO));
+    wcscpy(str, _T("Select a directory to be deduplicated"));
+	
+	brInfo.hwndOwner = NULL;
+    brInfo.pidlRoot = NULL;
+    brInfo.pszDisplayName = initPath;
+    brInfo.lpszTitle  = str;
+    brInfo.ulFlags = BIF_RETURNONLYFSDIRS;
+    brInfo.lpfn = NULL;
+    pidlBrowse = ::SHBrowseForFolder(&brInfo);
+
+    if(pidlBrowse != NULL) {
+        SHGetPathFromIDList(pidlBrowse, initPath);        
+        strFolder = initPath;
+		mv_Path = strFolder;
+		UpdateData(FALSE);
+    }
+}
+
+
+void CDedupDlg::OnBnClickedBtnStart()
+{
+	UpdateData();
+	chunkSize = _ttoi(mv_ChunkSize);
+	segSize = _ttoi(mv_SegSize);
+	smpRate = _ttoi(mv_SmpRate);
+	siEntrySize = _ttoi(mv_SIEntrySize);
+	siEntryNum = _ttoi(mv_SIEntryNum);
+
+
+}
