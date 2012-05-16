@@ -19,7 +19,7 @@ ChunkContainer::~ChunkContainer(void)
 
 bool ChunkContainer::openContainer(string c_name)
 {
-	fp = fopen(c_name.c_str(), "ab");
+	fp = fopen(("ChunkContainer\\" + c_name).c_str(), "ab");
 	if (fp == NULL) {
 		cerr << "Failed to open Container '" << c_name << "'." << endl;
 		exit(1);

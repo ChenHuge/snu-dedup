@@ -24,7 +24,7 @@ public:
 	int siEntrySize;
 	int siEntryNum;
 	int smpRate;
-
+	
 
 // 구현입니다.
 protected:
@@ -46,4 +46,6 @@ public:
 	CString mv_Path;
 	afx_msg void OnBnClickedBtnDir();
 	afx_msg void OnBnClickedBtnStart();
+	void StartPerDirectory(CString dirPath);
+	void StartPerFile(CString filePath_, CString fileName_);
 };
