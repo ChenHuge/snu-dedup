@@ -13,6 +13,7 @@
 #include "ChunkContainer.h"
 #include "ChunkManager.h"
 #include "ManifestStore.h"
+#include "MyString.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -61,7 +62,7 @@ CDedupDlg::CDedupDlg(CWnd* pParent /*=NULL*/)
 	, mv_SegSize(_T("8"))
 	, mv_SmpRate(_T("50"))
 	, mv_SIEntrySize(_T("10"))
-	, mv_SIEntryNum(_T("100"))
+	, mv_SIEntryNum(_T("500"))
 	, mv_Path(_T(""))
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
@@ -132,19 +133,15 @@ BOOL CDedupDlg::OnInitDialog()
 		}
 	}
 
-	
-
-	/*ManifestStore ms;
-	Manifest mf("a.mp3__m4.txt");
-	mf.addManiNode(ManiNode("ccc", "aa", 1234, 23525));
-	mf.addManiNode(ManiNode("bbbbbbbb", "aa", 1234, 23525));
-	ms.createManifest(mf);
-
-	vector<string> cn;
-	cn.push_back("a.mp3__m4.txt");
-	list<Manifest> champ = ms.loadChampions(cn);*/
-
-
+	//ChunkContainer 폴더가 존재하는지 확인. 없으면 생성
+    bRet = pFind.FindFile(L"ChunkContainer\\" + strFile);
+	if (!bRet) {
+		bRet = CreateDirectory(L"ChunkContainer\\", NULL);
+		if (!bRet) {
+			cerr << "ERROR: fail to create a folder 'ChunkContainer'" << endl;
+			exit(1);
+		}
+	}
 
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
@@ -243,10 +240,46 @@ void CDedupDlg::OnBnClickedBtnStart()
 		return;
 	}
 
-	string filepath = "C:\\PGUpgrade.log";
+	CFileFind pFind;
+	BOOL res = pFind.FindFile(mv_Path);
+	if (!res) {
+		MessageBox(_T("존재하지 않는 폴더입니다."), MB_OK);
+		return;
+	}
+
+	StartPerDirectory(mv_Path);
+}
+
+
+void CDedupDlg::StartPerDirectory(CString dirPath)
+{
+	CFileFind pFind;
+	BOOL bWorking = pFind.FindFile(dirPath + "\\*.*");
+
+	while (1) 
+	{
+		bWorking = pFind.FindNextFileW();
+		if (!bWorking)
+			break;
+
+		if (pFind.IsDirectory()) {
+			if (pFind.GetFileName() == _T(".") || pFind.GetFileName() == _T(".."))
+				continue;
+
+			StartPerDirectory(pFind.GetFilePath());
+		} else {
+			StartPerFile(pFind.GetFilePath(), pFind.GetFileName());
+		}
+	}
+}
+
+
+void CDedupDlg::StartPerFile(CString filePath_, CString fileName_)
+{
+	string filePath = MyString::CString2string(filePath_);
 
 	ChunkManager chkMng(chunkSize, segSize);
-	vector<char*> chunkList = chkMng.getChunkList(filepath.c_str(), ADD_INFO);
+	vector<char*> chunkList = chkMng.getChunkList(filePath.c_str(), ADD_INFO);
 	vector<char*>::iterator iter = chunkList.end();
 	iter--;
 	int LL = atoi(*iter);
@@ -255,8 +288,8 @@ void CDedupDlg::OnBnClickedBtnStart()
 	vector<char*> hashList = chkMng.getHashedList(&chunkList);
 	
 	ChunkContainer container;
-	string contName = "ChunkContainer1";
-	container.openContainer(contName);
+	string fileName = MyString::CString2string(fileName_);
+	container.openContainer(fileName);
 
 	ManifestStore maniStore;
 
@@ -266,10 +299,10 @@ void CDedupDlg::OnBnClickedBtnStart()
 		vector<char*> segment = chkMng.getSegment(&chunkList, segNum);
 		vector<char*> hooks = chkMng.getSegment(&hashList, segNum);
 
-		stringstream sstr;
-		sstr << segNum ;
-		string maniNum = sstr.str();
-		Manifest manifest("PGUpgrade.log__m" + maniNum);
+		string maniPrefix = filePath;
+		maniPrefix = MyString::replaceAll(maniPrefix, "\\", ";");
+
+		Manifest manifest(maniPrefix + "__m" + MyString::int2string(segNum) + ".mani");
 
 		for (int j = 0 ; j < segment.size() ; j++) {
 			fpos_t pos = container.getCurPos();
@@ -280,12 +313,11 @@ void CDedupDlg::OnBnClickedBtnStart()
 			else
 				writeSize = container.writeChunk(segment[j], chunkSize);
 
-			ManiNode node((string(hooks[j])), contName, pos, writeSize);
+			ManiNode node((string(hooks[j])), fileName, pos, writeSize);
 			manifest.addManiNode(node);
 		}
 
 		maniStore.createManifest(manifest);
-		segNum++;
 	}
 
 	container.closeContainer();
