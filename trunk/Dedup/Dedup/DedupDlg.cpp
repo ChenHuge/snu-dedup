@@ -248,6 +248,8 @@ void CDedupDlg::OnBnClickedBtnStart()
 	}
 
 	StartPerDirectory(mv_Path);
+
+	MessageBox(_T("완료"), _T("완료"), MB_OK);
 }
 
 
@@ -256,11 +258,9 @@ void CDedupDlg::StartPerDirectory(CString dirPath)
 	CFileFind pFind;
 	BOOL bWorking = pFind.FindFile(dirPath + "\\*.*");
 
-	while (1) 
+	while (bWorking) 
 	{
 		bWorking = pFind.FindNextFileW();
-		if (!bWorking)
-			break;
 
 		if (pFind.IsDirectory()) {
 			if (pFind.GetFileName() == _T(".") || pFind.GetFileName() == _T(".."))
@@ -299,9 +299,12 @@ void CDedupDlg::StartPerFile(CString filePath_, CString fileName_)
 		vector<char*> segment = chkMng.getSegment(&chunkList, segNum);
 		vector<char*> hooks = chkMng.getSegment(&hashList, segNum);
 
+		
 		string maniPrefix = filePath;
 		maniPrefix = MyString::replaceAll(maniPrefix, "\\", ";");
-
+		maniPrefix = MyString::replaceAll(maniPrefix, ":", ";");
+		
+		//string maniPrefix = MyString::CString2string(fileName_);
 		Manifest manifest(maniPrefix + "__m" + MyString::int2string(segNum) + ".mani");
 
 		for (int j = 0 ; j < segment.size() ; j++) {
