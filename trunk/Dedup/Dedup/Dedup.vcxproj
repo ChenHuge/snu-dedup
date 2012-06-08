@@ -110,7 +110,6 @@
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SHA1.h" />
     <ClInclude Include="SparseIndex.h" />
-    <ClInclude Include="SparseIndexEntry.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>

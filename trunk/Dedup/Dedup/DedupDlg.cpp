@@ -195,7 +195,7 @@ HCURSOR CDedupDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-
+///////////////////////////////////////////////////////////////////////////////
 
 void CDedupDlg::OnBnClickedBtnDir()
 {
@@ -303,7 +303,7 @@ void CDedupDlg::StartPerFile(CString filePath_, CString fileName_)
 		string maniPrefix = filePath;
 		maniPrefix = MyString::replaceAll(maniPrefix, "\\", ";");
 		maniPrefix = MyString::replaceAll(maniPrefix, ":", ";");
-		
+		//////////////////////////////////
 		//string maniPrefix = MyString::CString2string(fileName_);
 		Manifest manifest(maniPrefix + "__m" + MyString::int2string(segNum) + ".mani");
 
