@@ -1,9 +1,9 @@
 #pragma once
 
 #include <hash_map>
-#include <vector>
-#include <string>
+#include <list>
 #include <iterator>
+#include <string>
 #include <iostream>
 
 using namespace stdext;
@@ -17,7 +17,7 @@ public:
 	~SparseIndex(void);
 
 private:
-	hash_map<string, vector<string>> SITable;
+	hash_map<string, list<string>> SITable;
 	int entryNum;
 	int entrySize;
 
@@ -27,7 +27,9 @@ public:
 	void setEntryNum(int entryNum_);
 	void setEntrySize(int entrySize_);
 	bool addIndex(string hashKey, string maniName);
-	vector<string> chooseChampions(vector<char*> hooks);
+	vector<string> chooseChampions(vector<char*> hooks, int maxNumChamp);
 	bool isFull(void);
+	bool save(void);
+	bool load(void);
 };
 

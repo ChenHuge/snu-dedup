@@ -1,11 +1,15 @@
 #include "StdAfx.h"
 #include "SparseIndex.h"
-
+#include <fstream>
 #include "MyString.h"
+
+using namespace std;
+
 
 SparseIndex::SparseIndex(void)
 {
-	SparseIndex(500, 10);
+	setEntryNum(500);
+	setEntrySize(10);
 }
 
 SparseIndex::SparseIndex(int entryNum_, int entrySize_)
@@ -46,13 +50,16 @@ void SparseIndex::setEntrySize(int entrySize_)
 
 bool SparseIndex::addIndex(string hashKey, string maniName)
 {
-	hash_map<string, vector<string>>::iterator iter = SITable.find(hashKey);
+	hash_map<string, list<string>>::iterator iter = SITable.find(hashKey);
 	
 	//이미 SITable에 존재하는 hashKey인 경우
 	if (iter != SITable.end()) { 
 		if (iter->second.size() == entrySize) {//이미 해당 hashKey에 대한 entry가 full인 경우
-			cout << "SITable에서 " << hashKey << "에 해당하는 entry가 꽉찼습니다." << endl;
-			return false;
+			/*cout << "SITable에서 " << hashKey << "에 해당하는 entry가 꽉찼습니다." << endl;
+			return false;*/
+
+			//list의 맨 앞 요소 제거
+			iter->second.pop_front();
 		}
 		
 		iter->second.push_back(maniName);
@@ -60,19 +67,22 @@ bool SparseIndex::addIndex(string hashKey, string maniName)
 	else {
 		//아직 SITable에 존재하지않는 hashKey인 경우
 		if (isFull()) { //이미 SITable이 꽉찬 경우
-			cout << "SITable이 꽉찼습니다." << endl;
-			return false;
+			/*cout << "SITable이 꽉찼습니다." << endl;
+			return false;*/
+			
+			//SITable의 맨 앞 엔트리 제거
+			SITable.erase(SITable.begin());
 		}
 
-		vector<string> maniNames;
+		list<string> maniNames;
 		maniNames.push_back(maniName);
-		SITable.insert(hash_map<string, vector<string>>::value_type(hashKey, maniNames));
+		SITable.insert(hash_map<string, list<string>>::value_type(hashKey, maniNames));
 	}
 
 	return true;
 }
 
-vector<string> SparseIndex::chooseChampions(vector<char*> hooks)
+vector<string> SparseIndex::chooseChampions(vector<char*> hooks, int maxNumChamp)
 {
 	vector<string> champions;
 
@@ -82,13 +92,14 @@ vector<string> SparseIndex::chooseChampions(vector<char*> hooks)
 	for (int i = 0 ; i < hooks.size() ; i++) 
 	{
 		string hook(hooks[i]);
-		hash_map<string, vector<string>>::iterator iter = SITable.find(hook);
+		hash_map<string, list<string>>::iterator iter = SITable.find(hook);
 		
 		if (iter == SITable.end()) // SITable에 없는 hook인 경우
 			continue;
 	
-		for (int j = 0 ; j < iter->second.size() ; j++) {
-			string maniName = iter->second[j];
+		list<string>::iterator list_iter = iter->second.begin();
+		for (list_iter = iter->second.begin() ; list_iter != iter->second.end() ; list_iter++) {
+			string maniName = *list_iter;
 			hash_map<string, float>::iterator can_iter = candidates.find(maniName);
 			if (can_iter != candidates.end())
 				can_iter->second += 1.0;
@@ -100,8 +111,12 @@ vector<string> SparseIndex::chooseChampions(vector<char*> hooks)
 	// champions 고르기
 	for (int i = 0 ; i < hooks.size() ; i++) 
 	{
+		// MaxNumChampion을 초과햇다면 그만!
+		if (champions.size() >= maxNumChamp)
+			break;
+
 		string hook(hooks[i]);
-		hash_map<string, vector<string>>::iterator iter = SITable.find(hook);
+		hash_map<string, list<string>>::iterator iter = SITable.find(hook);
 		if (iter == SITable.end()) // SITable에 없는 hook인 경우
 			continue;
 
@@ -109,8 +124,9 @@ vector<string> SparseIndex::chooseChampions(vector<char*> hooks)
 		float max_point = 0.0;
 
 		// hook에 해당하는 한 entry에서 point가 최대인 maniName 찾기
-		for (int j = 0 ; j < iter->second.size() ; j++) {
-			string maniName = iter->second[j];
+		list<string>::iterator list_iter = iter->second.begin();
+		for (list_iter = iter->second.begin() ; list_iter != iter->second.end() ; list_iter++) {
+			string maniName = *list_iter;
 			hash_map<string, float>::iterator can_iter = candidates.find(maniName);
 				
 			if (max_point < can_iter->second) {  
@@ -141,8 +157,68 @@ vector<string> SparseIndex::chooseChampions(vector<char*> hooks)
 
 bool SparseIndex::isFull(void)
 {
-	if (entryNum >= SITable.size())
+	if (entryNum <= SITable.size())
 		return true;
 	else
 		return false;
+}
+
+
+bool SparseIndex::save(void)
+{
+	ofstream fout("SparseIndex", ios::out);
+	if (!fout)
+		return false;
+
+	fout << entryNum << endl;
+	fout << entrySize << endl;
+	fout << SITable.size() << endl;
+
+	hash_map<string, list<string>>::iterator iter = SITable.begin();
+	for (iter = SITable.begin() ; iter != SITable.end() ; iter++) {
+		fout << iter->first << " ";
+		fout << iter->second.size() << " ";
+
+		list<string>::iterator list_iter = iter->second.begin();
+		for (list_iter = iter->second.begin() ; list_iter != iter->second.end() ; list_iter++) {
+			fout << *list_iter << " ";
+		}
+
+		fout << endl;
+	}
+
+	fout.close();
+}
+
+
+bool SparseIndex::load(void)
+{
+	ifstream fin("SparseIndex", ios::in);
+	if (!fin)
+		return false;
+
+	int tableSize = 0;
+	
+	fin >> entryNum;
+	fin >> entrySize;
+	fin >> tableSize;
+
+	for (int i = 0 ; i < tableSize ; i++) {
+		string hashKey;
+		int listSize = 0;
+		list<string> maninames;
+
+		fin >> hashKey;
+		fin >> listSize;
+		
+		for (int j = 0 ; j < listSize ; j++) {
+			string mani;
+			fin >> mani;
+			maninames.push_back(mani);
+		}
+
+		SITable.insert(hash_map<string, list<string>>::value_type(hashKey, maninames));
+	}
+
+	fin.close();
 }

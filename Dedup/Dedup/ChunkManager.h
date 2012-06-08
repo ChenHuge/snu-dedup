@@ -59,6 +59,9 @@ public:
 	vector<char*> getHashedList(vector<char*>* list);
 
 	vector<char*> getSegment(vector<char*>* list, int index);
+
+	vector<char*> getSample(vector<char*>* hashedSegment, int numOfZeroBits);
+	int getNumOfZeroBits(const char* str);
 };
 
 #endif

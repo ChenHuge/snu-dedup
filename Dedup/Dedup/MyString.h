@@ -115,6 +115,10 @@ public:
 		return sstr.str();
 	}
 
+	static int string2int(string str) {
+		return atoi(str.c_str());
+	}
+
 	static string replaceAll(const string &str, const string &pattern, const string &replace)
 	{
 		string result = str;

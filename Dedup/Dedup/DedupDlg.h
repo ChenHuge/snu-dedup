@@ -3,7 +3,9 @@
 //
 
 #pragma once
-
+#include "ChunkContainer.h"
+#include "SparseIndex.h"
+#include "afxcmn.h"
 
 // CDedupDlg 대화 상자
 class CDedupDlg : public CDialogEx
@@ -23,8 +25,11 @@ public:
 	int segSize;
 	int siEntrySize;
 	int siEntryNum;
-	int smpRate;
-	
+	int numZeroBit;
+	int maxNumChamp;
+//	int smpRate;
+	ChunkContainer container;
+	SparseIndex sparseIndex;
 
 // 구현입니다.
 protected:
@@ -48,4 +53,9 @@ public:
 	afx_msg void OnBnClickedBtnStart();
 	void StartPerDirectory(CString dirPath);
 	void StartPerFile(CString filePath_, CString fileName_);
+	afx_msg void OnStnClickedStaticSplrate();
+	CString mv_NumZeroBit;
+	CString mv_MaxNumChamp;
+	CProgressCtrl mc_Progress;
+	virtual BOOL DestroyWindow();
 };
