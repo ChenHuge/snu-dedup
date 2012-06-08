@@ -208,3 +208,74 @@ vector<char*> ChunkManager::getSegment(vector<char*>* list, int index) {
 	return segment;
 }
 
+vector<char*> ChunkManager::getSample(vector<char*>* hashedSegment, int numOfZeroBits) {
+	vector<char*> sampleList;
+	vector<char*>::iterator iter;
+	int zeroBitCount = 0;
+	if(numOfZeroBits > 8) {
+		printf("Sampling rate too low.\n");
+	}
+	else if(numOfZeroBits < 0) {
+		printf("Undeterminable sampling rate.\n");
+	}
+	for(iter=hashedSegment->begin(); iter!=hashedSegment->end(); iter++) {
+		char temp[10];
+		strncpy_s(temp, *iter, 2);
+		if(getNumOfZeroBits(temp) >= numOfZeroBits)
+			sampleList.push_back(*iter);
+	}
+	return sampleList;
+}
+
+int ChunkManager::getNumOfZeroBits(const char* str) 
+{
+	if(strlen(str) != 2)
+		return -1;
+
+	char front[10], back[10];
+	int countZeroBits = 0;
+
+	if(str[0] == '0') strncpy_s(front, "0000", 4);
+	else if(str[0] == '1') strncpy_s(front, "0001", 4);
+	else if(str[0] == '2') strncpy_s(front, "0010", 4);
+	else if(str[0] == '3') strncpy_s(front, "0011", 4);
+	else if(str[0] == '4') strncpy_s(front, "0100", 4);
+	else if(str[0] == '5') strncpy_s(front, "0101", 4);
+	else if(str[0] == '6') strncpy_s(front, "0110", 4);
+	else if(str[0] == '7') strncpy_s(front, "0111", 4);
+	else if(str[0] == '8') strncpy_s(front, "1000", 4);
+	else if(str[0] == '9') strncpy_s(front, "1001", 4);
+	else if(str[0] == 'A') strncpy_s(front, "1010", 4);
+	else if(str[0] == 'B') strncpy_s(front, "1011", 4);
+	else if(str[0] == 'C') strncpy_s(front, "1100", 4);
+	else if(str[0] == 'D') strncpy_s(front, "1101", 4);
+	else if(str[0] == 'E') strncpy_s(front, "1110", 4);
+	else if(str[0] == 'F') strncpy_s(front, "1111", 4);
+	else return -1;
+
+	if(str[1] == '0') strncpy_s(back, "0000", 4);
+	else if(str[1] == '1') strncpy_s(back, "0001", 4);
+	else if(str[1] == '2') strncpy_s(back, "0010", 4);
+	else if(str[1] == '3') strncpy_s(back, "0011", 4);
+	else if(str[1] == '4') strncpy_s(back, "0100", 4);
+	else if(str[1] == '5') strncpy_s(back, "0101", 4);
+	else if(str[1] == '6') strncpy_s(back, "0110", 4);
+	else if(str[1] == '7') strncpy_s(back, "0111", 4);
+	else if(str[1] == '8') strncpy_s(back, "1000", 4);
+	else if(str[1] == '9') strncpy_s(back, "1001", 4);
+	else if(str[1] == 'A') strncpy_s(back, "1010", 4);
+	else if(str[1] == 'B') strncpy_s(back, "1011", 4);
+	else if(str[1] == 'C') strncpy_s(back, "1100", 4);
+	else if(str[1] == 'D') strncpy_s(back, "1101", 4);
+	else if(str[1] == 'E') strncpy_s(back, "1110", 4);
+	else if(str[1] == 'F') strncpy_s(back, "1111", 4);
+	else return -1;
+
+	strcat(front, back);
+	for(int i=0; i<8; i++) {
+		if(front[i] == '0') countZeroBits++;
+		else return countZeroBits;;
+	}
+
+	return countZeroBits;
+}

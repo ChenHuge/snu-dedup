@@ -60,10 +60,11 @@ CDedupDlg::CDedupDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(CDedupDlg::IDD, pParent)
 	, mv_ChunkSize(_T("4"))
 	, mv_SegSize(_T("8"))
-	, mv_SmpRate(_T("50"))
-	, mv_SIEntrySize(_T("10"))
-	, mv_SIEntryNum(_T("500"))
+	, mv_SIEntrySize(_T("1000"))
+	, mv_SIEntryNum(_T("1000"))
 	, mv_Path(_T(""))
+	, mv_NumZeroBit(_T("1"))
+	, mv_MaxNumChamp(_T("8"))
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -73,10 +74,12 @@ void CDedupDlg::DoDataExchange(CDataExchange* pDX)
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Text(pDX, IDC_EDIT_CHKSIZE, mv_ChunkSize);
 	DDX_Text(pDX, IDC_EDIT_SEGSIZE, mv_SegSize);
-	DDX_Text(pDX, IDC_EDIT_SPLRATE, mv_SmpRate);
 	DDX_Text(pDX, IDC_EDIT_ENTRYSIZE, mv_SIEntrySize);
 	DDX_Text(pDX, IDC_EDIT_ENTRYNUM, mv_SIEntryNum);
 	DDX_Text(pDX, IDC_EDIT_DIR, mv_Path);
+	DDX_Text(pDX, IDC_EDIT_NUMZEROBIT, mv_NumZeroBit);
+	DDX_Text(pDX, IDC_EDIT_MAXNUMCHAMP, mv_MaxNumChamp);
+	DDX_Control(pDX, IDC_PROGRESS1, mc_Progress);
 }
 
 BEGIN_MESSAGE_MAP(CDedupDlg, CDialogEx)
@@ -142,6 +145,9 @@ BOOL CDedupDlg::OnInitDialog()
 			exit(1);
 		}
 	}
+
+	//SparseIndex load
+	sparseIndex.load();
 
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
@@ -229,11 +235,23 @@ void CDedupDlg::OnBnClickedBtnDir()
 void CDedupDlg::OnBnClickedBtnStart()
 {
 	UpdateData();
+
+	if (mv_ChunkSize == _T("") || mv_SegSize == _T("") || mv_SIEntrySize == _T("") || mv_SIEntryNum == _T("")
+		|| mv_NumZeroBit == _T("") || mv_MaxNumChamp == _T("")) {
+			MessageBox(_T("인자를 모두 입력해주세요."), _T("미입력된 인자 발견"), MB_OK);
+			return;
+	}
+
 	chunkSize = _ttoi(mv_ChunkSize) * 1024;
 	segSize = _ttoi(mv_SegSize);
-	smpRate = _ttoi(mv_SmpRate);
 	siEntrySize = _ttoi(mv_SIEntrySize);
 	siEntryNum = _ttoi(mv_SIEntryNum);
+	numZeroBit = _ttoi(mv_NumZeroBit);
+	maxNumChamp = _ttoi(mv_MaxNumChamp);
+
+	sparseIndex.setEntrySize(siEntrySize);
+	sparseIndex.setEntryNum(siEntryNum);
+
 
 	if (mv_Path == _T("")) {
 		MessageBox(_T("폴더 경로를 지정해주세요."), MB_OK);
@@ -287,9 +305,9 @@ void CDedupDlg::StartPerFile(CString filePath_, CString fileName_)
 
 	vector<char*> hashList = chkMng.getHashedList(&chunkList);
 	
-	ChunkContainer container;
+	
 	string fileName = MyString::CString2string(fileName_);
-	container.openContainer(fileName);
+	container.openContainer();
 
 	ManifestStore maniStore;
 
@@ -297,31 +315,63 @@ void CDedupDlg::StartPerFile(CString filePath_, CString fileName_)
 
 	for (int segNum = 0 ; segNum < numOfSeg ; segNum++) {
 		vector<char*> segment = chkMng.getSegment(&chunkList, segNum);
-		vector<char*> hooks = chkMng.getSegment(&hashList, segNum);
+		vector<char*> hashs = chkMng.getSegment(&hashList, segNum);
+		vector<char*> hooks = chkMng.getSample(&hashs, numZeroBit);
 
+		vector<string> champions = sparseIndex.chooseChampions(hooks, maxNumChamp);
+		hash_map<string, ManiNode> champTable = maniStore.loadChampions(champions);
 		
 		string maniPrefix = filePath;
 		maniPrefix = MyString::replaceAll(maniPrefix, "\\", ";");
 		maniPrefix = MyString::replaceAll(maniPrefix, ":", ";");
-		//////////////////////////////////
-		//string maniPrefix = MyString::CString2string(fileName_);
 		Manifest manifest(maniPrefix + "__m" + MyString::int2string(segNum) + ".mani");
 
-		for (int j = 0 ; j < segment.size() ; j++) {
-			fpos_t pos = container.getCurPos();
+		for (int j = 0 ; j < segment.size() ; j++) 
+		{
+			// Deduplication 체크!!!!!!!!!
+			hash_map<string, ManiNode>::iterator iter = champTable.find(hashs[j]);
+			if (iter == champTable.end()) // 중복된 chunk가 없는 경우
+			{
+				fpos_t pos = container.getCurPos();
 
-			size_t writeSize;
-			if (segNum == numOfSeg-1 && j == segment.size() - 1) 
-				writeSize = container.writeChunk(segment[j], LL);
-			else
-				writeSize = container.writeChunk(segment[j], chunkSize);
+				size_t writeSize;
+				if (segNum == numOfSeg-1 && j == segment.size() - 1) 
+					writeSize = container.writeChunk(segment[j], LL);
+				else
+					writeSize = container.writeChunk(segment[j], chunkSize);
 
-			ManiNode node((string(hooks[j])), fileName, pos, writeSize);
-			manifest.addManiNode(node);
+				ManiNode node((string(hashs[j])), container.getName(), pos, writeSize);
+				manifest.addManiNode(node);
+			}
+			else { //중복된 chunk가 있는 경우
+				ManiNode node((string(hashs[j])), iter->second.getContainer(), 
+								iter->second.getPosition(), iter->second.getLength());
+				manifest.addManiNode(node);
+			}
+
+			//SparseIndex에 새 manifest 정보 넣기
+			bool isSampled = false;
+			for (int z = 0 ; z < hooks.size() ; z++) {
+				if (strcmp(hooks[z], hashs[j]) == 0) {
+					isSampled = true;
+					break;
+				}
+			}
+			if (isSampled) { //샘플링되었던 chunk 라면
+				sparseIndex.addIndex(hashs[j], manifest.getName());
+			}
+
 		}
 
 		maniStore.createManifest(manifest);
 	}
+}
 
+BOOL CDedupDlg::DestroyWindow()
+{
+	// TODO: 여기에 특수화된 코드를 추가 및/또는 기본 클래스를 호출합니다.
+	sparseIndex.save();
 	container.closeContainer();
+
+	return CDialogEx::DestroyWindow();
 }

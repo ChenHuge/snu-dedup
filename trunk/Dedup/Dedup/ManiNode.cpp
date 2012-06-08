@@ -3,12 +3,18 @@
 
 ManiNode::ManiNode(void)
 {
-	ManiNode("", "", 0, 0);
+	setHashKey("");
+	setContainer("");
+	setPosition(0);
+	setLength(0);
 }
 
 ManiNode::ManiNode(string hash_key_)
 {
-	ManiNode(hash_key_, "", 0, 0);
+	setHashKey(hash_key_);
+	setContainer("");
+	setPosition(0);
+	setLength(0);
 }
 
 ManiNode::ManiNode(string hash_key_, string container_, fpos_t position_, size_t length_)

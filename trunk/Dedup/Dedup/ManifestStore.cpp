@@ -3,6 +3,7 @@
 #include <Windows.h>
 #include <io.h>
 
+
 using namespace std;
 
 ManifestStore::ManifestStore(void)
@@ -14,9 +15,9 @@ ManifestStore::~ManifestStore(void)
 {
 }
 
-list<Manifest> ManifestStore::loadChampions(vector<string> chap_names)
+hash_map<string, ManiNode> ManifestStore::loadChampions(vector<string> chap_names)
 {
-	list<Manifest> champions;
+	hash_map<string, ManiNode> keys;
 
 	for (int i = 0 ; i < chap_names.size() ; i++) 
 	{
@@ -28,23 +29,19 @@ list<Manifest> ManifestStore::loadChampions(vector<string> chap_names)
 			exit(1);
 		}
 
-		Manifest manifest(chap_names[i]);
-
 		string hash, cont;
 		fpos_t pos;
 		size_t length;
 
 		while (fin >> hash >> cont >> pos >> length) {
-			ManiNode maninode(hash, cont, pos, length);
-			manifest.addManiNode(maninode);
+			ManiNode maniNode(hash, cont, pos, length);
+			keys.insert(hash_map<string, ManiNode>::value_type(hash, maniNode));
 		}
-
-		champions.push_back(manifest);
 
 		fin.close();
 	}
 
-	return champions;
+	return keys;
 }
 
 void ManifestStore::createManifest(Manifest manifest)
