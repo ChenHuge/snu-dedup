@@ -82,7 +82,7 @@ bool SparseIndex::addIndex(string hashKey, string maniName)
 	return true;
 }
 
-vector<string> SparseIndex::chooseChampions(vector<char*> hooks, int maxNumChamp)
+vector<string> SparseIndex::chooseChampions(vector<string> hooks, int maxNumChamp)
 {
 	vector<string> champions;
 
@@ -91,8 +91,7 @@ vector<string> SparseIndex::chooseChampions(vector<char*> hooks, int maxNumChamp
 
 	for (int i = 0 ; i < hooks.size() ; i++) 
 	{
-		string hook(hooks[i]);
-		hash_map<string, list<string>>::iterator iter = SITable.find(hook);
+		hash_map<string, list<string>>::iterator iter = SITable.find(hooks[i]);
 		
 		if (iter == SITable.end()) // SITable에 없는 hook인 경우
 			continue;
@@ -115,8 +114,7 @@ vector<string> SparseIndex::chooseChampions(vector<char*> hooks, int maxNumChamp
 		if (champions.size() >= maxNumChamp)
 			break;
 
-		string hook(hooks[i]);
-		hash_map<string, list<string>>::iterator iter = SITable.find(hook);
+		hash_map<string, list<string>>::iterator iter = SITable.find(hooks[i]);
 		if (iter == SITable.end()) // SITable에 없는 hook인 경우
 			continue;
 

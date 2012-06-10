@@ -16,10 +16,11 @@ ChunkManager::ChunkManager(int CS, int SS)
 	   이 메서드는 사용하지 말라. char* filename만을 인자로 받는 같은 이름의 메서드가
 	   오버라이딩되어있으므로, 그것을 사용하라. 해당 메서드는 이 메서드에서
 	   GET_CHUNK_ONLY 옵션을 준 것과 동일한 역할을 한다. */
-vector<char*> ChunkManager::getChunkList(const char* filename, int opt) 
+vector<string> ChunkManager::getChunkList(string filename, int opt) 
 {
-	FILE *fp;
-	vector<char*> chunkList;
+	FILE *fp = NULL;
+	vector<string> chunkList;
+	chunkList.clear();
 	int readLen = 0;
 	int def_opt = 0;
 
@@ -31,30 +32,39 @@ vector<char*> ChunkManager::getChunkList(const char* filename, int opt)
 	}
 	else {
 		printf("Bad option parameter is given.\n");
-		return (vector<char*>)0;
+		return (vector<string>)0;
 	}
 
-	fopen_s(&fp, filename, "rb");
+	fopen_s(&fp, filename.c_str(), "rb");
 	if(fp==NULL) {
-		printf("Failed to open %s.\n", filename);
+		cout << "Failed to open " << filename << "." << endl;
 	}
 	else {
 		while(1) {
-			char *temp = new char[chunkSize]; // chunkSize만큼의 임시 공간을 temp에 할당.
-			readLen = fread(temp, sizeof(char), chunkSize, fp);
-			temp[readLen]='\0';
+			char* t = new char[chunkSize+1];
+			strcpy(t, "");
+			string temp = ""; // chunkSize만큼의 임시 공간을 temp에 할당.
+			readLen = fread(t, sizeof(char), chunkSize, fp);
+			t[readLen] = '\0';
+			temp.assign(t);
+
 			if(feof(fp)) {
 				if(readLen>0) {
-					char* LL = new char(12);
+					string LL = "";
+					char t[10] = "";
 					lastLength = readLen;
-					sprintf(LL, "%d", lastLength);
+
+					sprintf(t, "%d", lastLength);
+					LL.assign(t);
 					chunkList.push_back(temp);
 					if(def_opt == ADD_INFO)
 						chunkList.push_back(LL);
 				}
+				delete [chunkSize]t;
 				break;
 			}
 			chunkList.push_back(temp);
+			delete [chunkSize]t;
 		}
 		fclose(fp);
 	}
@@ -67,8 +77,9 @@ vector<char*> ChunkManager::getChunkList(const char* filename, int opt)
 	특별한 이유가 없으면 SHOW_ARRANGED 옵션으로 사용하기를 권한다.
 	인자로 hashed list를 넣을 경우, 옵션으로 SHOW_HASHLIST를 사용하라. */
 
-void ChunkManager::showChunkList(vector<char*> chunkList, int opt) {
-	vector<char*>::iterator iter;
+void ChunkManager::showChunkList(vector<string> chunkList, int opt) 
+{
+	vector<string>::iterator iter;
 	int i=0;
 	if(chunkList.empty()) {
 		printf("List is empty.\n");
@@ -77,11 +88,13 @@ void ChunkManager::showChunkList(vector<char*> chunkList, int opt) {
 	else
 		// 각 청크를 하나씩 출력해준다.
 		if(opt==SHOW_ARRANGED) {
-			int i, size = chunkList.size();
-			for(i=0; i<size-1; i++) {
-				char temp[80] = "";
-				strncpy_s(temp, chunkList[i], 60);
-				printf("[%d] %s...\n", i, temp);
+			int size = chunkList.size();
+			for(int i=0; i<size-1; i++) {
+				string temp = "";
+				char t[100] = "";
+				strncpy(t, chunkList[i].c_str(), 60);
+				temp.assign(t);
+				cout << "[" << i << "] " << temp << "..." << endl;
 			}
 		//	printf("\nSIZE OF THE LAST CHUNK(index %d) : %s.\nCHUNKSIZE: %d\n", i-1, chunkList[i], chunkSize);
 			printf("Press enter.\n");
@@ -97,9 +110,11 @@ void ChunkManager::showChunkList(vector<char*> chunkList, int opt) {
 		else if(opt==SHOW_HASHLIST) {
 			int i, size = chunkList.size();
 			for(i=0; i<size; i++) {
-				char temp[80] = "";
-				strncpy_s(temp, chunkList[i], 60);
-				printf("[%d] %s\n", i, temp);
+				string temp = "";
+				char t[100] = "";
+				strncpy(t, chunkList[i].c_str(), 60);
+				temp.assign(t);
+				cout << "[" << i << "] " << temp << endl;
 			}
 			printf("Press enter.\n");
 			getchar();
@@ -114,10 +129,11 @@ void ChunkManager::showChunkList(vector<char*> chunkList, int opt) {
 	ADD_INFO 옵션을 통해 만들어져 끝에 마지막으로 읽어들인 파일의 길이가 기록되어
     있어야 한다. 그렇지 않을 경우, 이 메서드에 의해 새로 쓰여진 파일의 길이가
 	원본과 동일할 것을 보장할 수 없다.	*/
-void ChunkManager::writeChunkList(vector<char*> chunkList, char* filename) {
-	FILE *wp;
-	vector<char*>::iterator iter;
-	fopen_s(&wp, filename, "wb");
+void ChunkManager::writeChunkList(vector<string> chunkList, string filename) 
+{
+	FILE *wp = NULL;
+	vector<string>::iterator iter;
+	fopen_s(&wp, filename.c_str(), "wb");
 	if(wp==NULL) {
 		printf("Failed to create %s.\n", filename);
 		return;
@@ -129,13 +145,13 @@ void ChunkManager::writeChunkList(vector<char*> chunkList, char* filename) {
 		}
 		else {
 			iter = chunkList.end() - 1;
-			int LL = atoi(*iter);
+			int LL = atoi((*iter).c_str());
 
 			for(iter=chunkList.begin(); iter!=chunkList.end()-1; iter++) {
 				if(iter==chunkList.end()-2)
-					fwrite(*iter, sizeof(char), LL, wp);
+					fwrite((*iter).c_str(), sizeof(char), LL, wp);
 				else
-					fwrite(*iter, sizeof(char), chunkSize, wp);
+					fwrite((*iter).c_str(), sizeof(char), chunkSize, wp);
 			}
 			fclose(wp);
 		}
@@ -144,20 +160,22 @@ void ChunkManager::writeChunkList(vector<char*> chunkList, char* filename) {
 
 /* 원본 파일명과 복사될 파일명을 인자로 주면, 원본 파일을 청킹하여 청크리스트를 만든 뒤,
 	해당 청크 리스트를 복사될 파일명을 갖는 파일로 다시 써서 복구하는 메서드이다. */
-void ChunkManager::copyStream(char* src, char* dst) {
-	vector<char*> chunkList = getChunkList(src, ADD_INFO);
+void ChunkManager::copyStream(string src, string dst) 
+{
+	vector<string> chunkList = getChunkList(src, ADD_INFO);
 	writeChunkList(chunkList, dst);
 }
 
 /* 데이터를 받아서 SHA-1에 따른 해시 값을 반환하는 메서드이다. */
-char* ChunkManager::getHashKey(char* data) {
+string ChunkManager::getHashKey(string data) 
+{
 	SHA1 sha;
-	char* hashKey = new char[40];
-	unsigned m_d[5];
+	string hashKey = "";
+	unsigned m_d[5] = {0};
 	int i=0, str_len;
 	sha.Reset();
 
-	str_len = strlen(data);
+	str_len = strlen(data.c_str());
 	while(i<str_len) {
 		sha.Input(data[i]);
 		i++;
@@ -165,18 +183,22 @@ char* ChunkManager::getHashKey(char* data) {
 		
 	if(!sha.Result(m_d)) {
 		printf("sha: could not compute message digest for %s\n", data);
-		return (char*)NULL;
+		return (string)NULL;
 	}
 	else {
 		sha.~SHA1();
-		sprintf(hashKey, "%08X%08X%08X%08X%08X", m_d[0], m_d[1], m_d[2], m_d[3], m_d[4]);
+		char temp[100] = "";
+		sprintf(temp, "%08X%08X%08X%08X%08X", m_d[0], m_d[1], m_d[2], m_d[3], m_d[4]);
+		hashKey.assign(temp);
 		return hashKey;
 	}
 }
 
 /* 인자로 전달된 리스트의 모든 chunk들에 대한 SHA-1 해시 값을 구해 리스트를 만들어 반환한다. */
-vector<char*> ChunkManager::getHashedList(vector<char*>* list) {
-	vector<char*> hashedList;
+vector<string> ChunkManager::getHashedList(vector<string>* list) 
+{
+	vector<string> hashedList;
+	hashedList.clear();
 	int size = list->size();
 	if(list->empty()) 
 		printf("List is empty.\n");
@@ -187,17 +209,19 @@ vector<char*> ChunkManager::getHashedList(vector<char*>* list) {
 	return hashedList;
 }
 
-vector<char*> ChunkManager::getSegment(vector<char*>* list, int index) {
+vector<string> ChunkManager::getSegment(vector<string>* list, int index) 
+{
 	/* index가 0이면 0~7번 청크.
 		index가 1이면 8~15번 청크.
 		index가 2이면 16~23번 청크.
 		index가 k이면 k*segmentSize~k*segmentSize+segmentSize-1번 청크. */
-	vector<char*> segment;
+	vector<string> segment;
+	segment.clear();
 	int size = list->size();
 	if(list->empty())
-		return segment;
+		printf("List is empty.\n");
 	else if(index*segmentSize >= size) {
-		return segment;
+		printf("Invalid index.\n");
 	}
 	else
 		for(int i=index*segmentSize; i<index*segmentSize+segmentSize; i++) {
@@ -208,9 +232,14 @@ vector<char*> ChunkManager::getSegment(vector<char*>* list, int index) {
 	return segment;
 }
 
-vector<char*> ChunkManager::getSample(vector<char*>* hashedSegment, int numOfZeroBits) {
-	vector<char*> sampleList;
-	vector<char*>::iterator iter;
+/* 인자로 들어온 해시키 리스트에 대하여 샘플링을 수행한다.
+	   이 때 샘플링되는 키들은, 해당 키의 첫 n비트가 0인 것들이다.
+	   이를테면, AC6F...은 첫 1비트가 0이므로, numOfZeroBits가 1인 경우엔 샘플링된다. */
+vector<string> ChunkManager::getSample(vector<string>* hashedSegment, int numOfZeroBits) 
+{
+	vector<string> sampleList;
+	vector<string>::iterator iter;
+	sampleList.clear();
 	int zeroBitCount = 0;
 	if(numOfZeroBits > 8) {
 		printf("Sampling rate too low.\n");
@@ -219,20 +248,23 @@ vector<char*> ChunkManager::getSample(vector<char*>* hashedSegment, int numOfZer
 		printf("Undeterminable sampling rate.\n");
 	}
 	for(iter=hashedSegment->begin(); iter!=hashedSegment->end(); iter++) {
-		char temp[10];
-		strncpy_s(temp, *iter, 2);
+		string temp = "";
+		char t[100] = "";
+		t[2] = 0;
+		strncpy(t, (*iter).c_str(), 2);
+		temp.assign(t);
 		if(getNumOfZeroBits(temp) >= numOfZeroBits)
 			sampleList.push_back(*iter);
 	}
 	return sampleList;
 }
 
-int ChunkManager::getNumOfZeroBits(const char* str) 
+int ChunkManager::getNumOfZeroBits(const string str) 
 {
-	if(strlen(str) != 2)
+	if(strlen(str.c_str()) != 2)
 		return -1;
 
-	char front[10], back[10];
+	char front[10] = "", back[10] = "";
 	int countZeroBits = 0;
 
 	if(str[0] == '0') strncpy_s(front, "0000", 4);

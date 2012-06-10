@@ -6,6 +6,8 @@
 #include "ChunkContainer.h"
 #include "SparseIndex.h"
 #include "afxcmn.h"
+#include "Manifest.h";
+
 
 // CDedupDlg 대화 상자
 class CDedupDlg : public CDialogEx
@@ -27,9 +29,19 @@ public:
 	int siEntryNum;
 	int numZeroBit;
 	int maxNumChamp;
-//	int smpRate;
+	bool compareOnlyHash;
+	bool isForceTerminated;
 	ChunkContainer container;
 	SparseIndex sparseIndex;
+
+	// Result 관련 변수들
+	long numInputFiles;
+	long numInputChunks;
+	long numStoredChunks;
+	long totalInputSize;
+	long totalStoredSize;
+	DWORD dedupTime, dwStartTime, dwEndTime;
+	double dedupFactor;
 
 // 구현입니다.
 protected:
@@ -42,10 +54,10 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
+
 	afx_msg void OnDeltaposSpinSplrate2(NMHDR *pNMHDR, LRESULT *pResult);
 	CString mv_ChunkSize;
 	CString mv_SegSize;
-	CString mv_SmpRate;
 	CString mv_SIEntrySize;
 	CString mv_SIEntryNum;
 	CString mv_Path;
@@ -58,4 +70,18 @@ public:
 	CString mv_MaxNumChamp;
 	CProgressCtrl mc_Progress;
 	virtual BOOL DestroyWindow();
+	BOOL mv_RadioHash;
+	CSpinButtonCtrl mc_SpinChunkSize;
+	CSpinButtonCtrl mc_SpinSegSize;
+	CSpinButtonCtrl mc_SpinNumZeroBit;
+	CSpinButtonCtrl mc_SpinMaxNumChamp;
+	CSpinButtonCtrl mc_SpinSIEntrySize;
+	CSpinButtonCtrl mc_SpinSIEntryNum;
+	CString mv_NumInputFiles;
+	CString mv_NumInputChunks;
+	CString mv_NumStoredChunks;
+	CString mv_TotalInputSize;
+	CString mv_TotalStoredSize;
+	CString mv_DedupTime;
+	CString mv_DedupFactor;
 };

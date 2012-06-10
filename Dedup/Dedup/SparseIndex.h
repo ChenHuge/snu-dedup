@@ -27,7 +27,7 @@ public:
 	void setEntryNum(int entryNum_);
 	void setEntrySize(int entrySize_);
 	bool addIndex(string hashKey, string maniName);
-	vector<string> chooseChampions(vector<char*> hooks, int maxNumChamp);
+	vector<string> chooseChampions(vector<string> hooks, int maxNumChamp);
 	bool isFull(void);
 	bool save(void);
 	bool load(void);
