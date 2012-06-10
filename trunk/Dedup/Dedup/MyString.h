@@ -16,7 +16,7 @@ public:
 	static TCHAR* CString2TCHAR(CString cstr) {
 		return (TCHAR*)(LPCTSTR)cstr;
 	}
-
+	
 	static std::string CString2string(CString cstr) {
 		CT2CA pszConvertedAnsiString(cstr);
 		std::string s(pszConvertedAnsiString);
@@ -56,10 +56,10 @@ public:
 		return wstr;
 	}
 
-	static CString int2CString(int num) {
+	static CString long2CString(long num) {
 		if (num > 0) {
 			CString cstr;
-			cstr.Format(_T("%d"), num);
+			cstr.Format(_T("%ld"), num);
 			return cstr;
 		}
 		else if (num == 0) {
@@ -69,16 +69,16 @@ public:
 		else {
 			num = num * (-1);
 			CString cstr, cstr2;
-			cstr.Format(_T("%d"), num);
+			cstr.Format(_T("%ld"), num);
 			cstr2 = _T("-") + cstr;
 			return cstr2;
 		}
 	}
 
-	static CString float2CString(float num) {
+	static CString double2CString(double num) {
 		if (num > 0) {
 			CString cstr;
-			cstr.Format(_T("%.1f"), num);
+			cstr.Format(_T("%.2lf"), num);
 			return cstr;
 		}
 		else if (num == 0) {
@@ -88,9 +88,19 @@ public:
 		else {
 			num = num * (-1);
 			CString cstr, cstr2;
-			cstr.Format(_T("%.1f"), num);
+			cstr.Format(_T("%.2lf"), num);
 			cstr2 = _T("-") + cstr;
 			return cstr2;
+		}
+	}
+
+	static CString DWORD2CString(DWORD d) {
+		if (d == NULL) {
+			return _T("");
+		} else {
+			CString cstr;
+			cstr.Format(_T("%lu"), (ULONG)d);
+			return cstr;
 		}
 	}
 

@@ -14,6 +14,10 @@
 #include "ChunkManager.h"
 #include "ManifestStore.h"
 #include "MyString.h"
+#include <exception>
+
+#include "Mmsystem.h"
+#pragma comment(lib, "winmm.lib")
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -65,8 +69,17 @@ CDedupDlg::CDedupDlg(CWnd* pParent /*=NULL*/)
 	, mv_Path(_T(""))
 	, mv_NumZeroBit(_T("1"))
 	, mv_MaxNumChamp(_T("8"))
+	, mv_RadioHash(FALSE)
+	, mv_NumInputFiles(_T(""))
+	, mv_NumInputChunks(_T(""))
+	, mv_NumStoredChunks(_T(""))
+	, mv_TotalInputSize(_T(""))
+	, mv_TotalStoredSize(_T(""))
+	, mv_DedupTime(_T(""))
+	, mv_DedupFactor(_T(""))
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+	isForceTerminated = false;
 }
 
 void CDedupDlg::DoDataExchange(CDataExchange* pDX)
@@ -80,6 +93,14 @@ void CDedupDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_EDIT_NUMZEROBIT, mv_NumZeroBit);
 	DDX_Text(pDX, IDC_EDIT_MAXNUMCHAMP, mv_MaxNumChamp);
 	DDX_Control(pDX, IDC_PROGRESS1, mc_Progress);
+	DDX_Radio(pDX, IDC_RADIO_HASH, mv_RadioHash);
+	DDX_Text(pDX, IDC_EDIT_RES_NUMINPUTFILES, mv_NumInputFiles);
+	DDX_Text(pDX, IDC_EDIT_RES_NUMINPUTCHUNK, mv_NumInputChunks);
+	DDX_Text(pDX, IDC_EDIT_RES_NUMSTOREDCHUNK, mv_NumStoredChunks);
+	DDX_Text(pDX, IDC_EDIT_RES_TOTINPUTSIZE, mv_TotalInputSize);
+	DDX_Text(pDX, IDC_EDIT_RES_TOTSTOREDSIZE, mv_TotalStoredSize);
+	DDX_Text(pDX, IDC_EDIT_RES_DEDUPTIME, mv_DedupTime);
+	DDX_Text(pDX, IDC_EDIT_RES_DEDUPFACTOR, mv_DedupFactor);
 }
 
 BEGIN_MESSAGE_MAP(CDedupDlg, CDialogEx)
@@ -122,7 +143,7 @@ BOOL CDedupDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// 큰 아이콘을 설정합니다.
 	SetIcon(m_hIcon, FALSE);		// 작은 아이콘을 설정합니다.
 
-	// TODO: 여기에 추가 초기화 작업을 추가합니다.
+	// TODO: 여기에 추가 초기화 작업을 추가합니다
 
 	//ManifestStore 폴더가 존재하는지 확인. 없으면 생성
 	CFileFind pFind;
@@ -131,7 +152,7 @@ BOOL CDedupDlg::OnInitDialog()
 	if (!bRet) {
 		bRet = CreateDirectory(L"ManifestStore\\", NULL);
 		if (!bRet) {
-			cerr << "ERROR: fail to create a folder 'ManifestStore'" << endl;
+			MessageBox(_T("ERROR: fail to create ManifestStore directory!"), _T("ERROR - OnInitDialog"), MB_OK);
 			exit(1);
 		}
 	}
@@ -141,7 +162,7 @@ BOOL CDedupDlg::OnInitDialog()
 	if (!bRet) {
 		bRet = CreateDirectory(L"ChunkContainer\\", NULL);
 		if (!bRet) {
-			cerr << "ERROR: fail to create a folder 'ChunkContainer'" << endl;
+			MessageBox(_T("ERROR: fail to create ChunkContainer directory!"), _T("ERROR - OnInitDialog"), MB_OK);
 			exit(1);
 		}
 	}
@@ -249,6 +270,13 @@ void CDedupDlg::OnBnClickedBtnStart()
 	numZeroBit = _ttoi(mv_NumZeroBit);
 	maxNumChamp = _ttoi(mv_MaxNumChamp);
 
+	switch (mv_RadioHash) {
+	case 0:
+		compareOnlyHash = true; break;
+	default:
+		compareOnlyHash = false; break;
+	}
+
 	sparseIndex.setEntrySize(siEntrySize);
 	sparseIndex.setEntryNum(siEntryNum);
 
@@ -265,7 +293,38 @@ void CDedupDlg::OnBnClickedBtnStart()
 		return;
 	}
 
+	//Result 관련 변수들 초기화
+	numInputFiles = 0;
+	numInputChunks = 0;
+	numStoredChunks = 0;
+	totalInputSize = 0;
+	totalStoredSize = 0;
+
+	dwStartTime = timeGetTime();
+
 	StartPerDirectory(mv_Path);
+
+	dwEndTime = timeGetTime();
+	dedupTime = dwEndTime - dwStartTime;
+
+	//Dedup factor 계산
+	if (totalInputSize < totalStoredSize) {
+		MessageBox(_T("입력 파일들의 크기보다 저장된 파일들의 크기가 더 큽니다.\n무엇인가 잘못되었습니다."), _T("Dedup factor 계산 오류"), MB_OK);
+		dedupFactor = 0.0;
+	}
+	else {
+		dedupFactor = (double)(totalInputSize - totalStoredSize) / (double)totalInputSize * 100.0;
+	}
+
+	mv_NumInputFiles = MyString::long2CString(numInputFiles);
+	mv_NumInputChunks = MyString::long2CString(numInputChunks);
+	mv_NumStoredChunks = MyString::long2CString(numStoredChunks);
+	mv_TotalInputSize = MyString::long2CString(totalInputSize) + _T("KB");
+	mv_TotalStoredSize = MyString::long2CString(totalStoredSize) + _T("KB");
+	mv_DedupTime = MyString::DWORD2CString(dedupTime) + _T("ms");
+	mv_DedupFactor = MyString::double2CString(dedupFactor);
+
+	UpdateData(FALSE);
 
 	MessageBox(_T("완료"), _T("완료"), MB_OK);
 }
@@ -286,6 +345,7 @@ void CDedupDlg::StartPerDirectory(CString dirPath)
 
 			StartPerDirectory(pFind.GetFilePath());
 		} else {
+			numInputFiles++;
 			StartPerFile(pFind.GetFilePath(), pFind.GetFileName());
 		}
 	}
@@ -297,29 +357,45 @@ void CDedupDlg::StartPerFile(CString filePath_, CString fileName_)
 	string filePath = MyString::CString2string(filePath_);
 
 	ChunkManager chkMng(chunkSize, segSize);
-	vector<char*> chunkList = chkMng.getChunkList(filePath.c_str(), ADD_INFO);
-	vector<char*>::iterator iter = chunkList.end();
+	vector<string> chunkList = chkMng.getChunkList(filePath, ADD_INFO);
+	vector<string>::iterator iter = chunkList.end();
 	iter--;
-	int LL = atoi(*iter);
+	int LL = MyString::string2int(*iter);
 	chunkList.pop_back();
 
-	vector<char*> hashList = chkMng.getHashedList(&chunkList);
-	
+	vector<string> hashList = chkMng.getHashedList(&chunkList);
 	
 	string fileName = MyString::CString2string(fileName_);
-	container.openContainer();
+
+	try {
+		container.openContainer();
+	}
+	catch (exception &ex) {
+		MessageBox((CString)ex.what(), _T("Catched at StartPerFile"), MB_OK);
+		isForceTerminated = true;
+		AfxGetMainWnd()->PostMessage(WM_QUIT);
+	}
 
 	ManifestStore maniStore;
 
 	int numOfSeg = ceil((double)chunkList.size() / (double)segSize);
 
 	for (int segNum = 0 ; segNum < numOfSeg ; segNum++) {
-		vector<char*> segment = chkMng.getSegment(&chunkList, segNum);
-		vector<char*> hashs = chkMng.getSegment(&hashList, segNum);
-		vector<char*> hooks = chkMng.getSample(&hashs, numZeroBit);
+		vector<string> segment = chkMng.getSegment(&chunkList, segNum);
+		vector<string> hashs = chkMng.getSegment(&hashList, segNum);
+		vector<string> hooks = chkMng.getSample(&hashs, numZeroBit);
 
 		vector<string> champions = sparseIndex.chooseChampions(hooks, maxNumChamp);
-		hash_map<string, ManiNode> champTable = maniStore.loadChampions(champions);
+
+		hash_map<string, ManiNode> champTable;
+		try {
+			champTable = maniStore.loadChampions(champions);
+		}
+		catch (exception &ex) {
+			MessageBox((CString)ex.what(), _T("Catched at StartPerFile"), MB_OK);
+			isForceTerminated = true;
+			AfxGetMainWnd()->PostMessage(WM_QUIT);
+		}
 		
 		string maniPrefix = filePath;
 		maniPrefix = MyString::replaceAll(maniPrefix, "\\", ";");
@@ -328,20 +404,37 @@ void CDedupDlg::StartPerFile(CString filePath_, CString fileName_)
 
 		for (int j = 0 ; j < segment.size() ; j++) 
 		{
+			numInputChunks++;
+			if (segNum == numOfSeg-1 && j == segment.size() - 1) 
+				totalInputSize += (long)LL;
+			else
+				totalInputSize += (long)chunkSize;
+
 			// Deduplication 체크!!!!!!!!!
 			hash_map<string, ManiNode>::iterator iter = champTable.find(hashs[j]);
 			if (iter == champTable.end()) // 중복된 chunk가 없는 경우
 			{
-				fpos_t pos = container.getCurPos();
+				fpos_t pos;
+				try {
+					pos = container.getCurPos();
+				}
+				catch (exception &ex) {
+					MessageBox((CString)ex.what(), _T("Catched at StartPerFile"), MB_OK);
+					isForceTerminated = true;
+					AfxGetMainWnd()->PostMessage(WM_QUIT);
+				}
 
+				numStoredChunks++;
 				size_t writeSize;
-				if (segNum == numOfSeg-1 && j == segment.size() - 1) 
+				if (segNum == numOfSeg-1 && j == segment.size() - 1)
 					writeSize = container.writeChunk(segment[j], LL);
 				else
 					writeSize = container.writeChunk(segment[j], chunkSize);
+				totalStoredSize += (long)writeSize;
 
 				ManiNode node((string(hashs[j])), container.getName(), pos, writeSize);
 				manifest.addManiNode(node);
+				
 			}
 			else { //중복된 chunk가 있는 경우
 				ManiNode node((string(hashs[j])), iter->second.getContainer(), 
@@ -352,7 +445,7 @@ void CDedupDlg::StartPerFile(CString filePath_, CString fileName_)
 			//SparseIndex에 새 manifest 정보 넣기
 			bool isSampled = false;
 			for (int z = 0 ; z < hooks.size() ; z++) {
-				if (strcmp(hooks[z], hashs[j]) == 0) {
+				if (hooks[z] == hashs[j]) {
 					isSampled = true;
 					break;
 				}
@@ -363,14 +456,24 @@ void CDedupDlg::StartPerFile(CString filePath_, CString fileName_)
 
 		}
 
-		maniStore.createManifest(manifest);
+		try {
+			maniStore.createManifest(manifest);
+		}
+		catch (exception &ex) {
+			MessageBox((CString)ex.what(), _T("Catched at StartPerFile"), MB_OK);
+			isForceTerminated = true;
+			AfxGetMainWnd()->PostMessage(WM_QUIT);
+		}
 	}
 }
+
 
 BOOL CDedupDlg::DestroyWindow()
 {
 	// TODO: 여기에 특수화된 코드를 추가 및/또는 기본 클래스를 호출합니다.
-	sparseIndex.save();
+	if (!isForceTerminated)
+		sparseIndex.save();
+
 	container.closeContainer();
 
 	return CDialogEx::DestroyWindow();

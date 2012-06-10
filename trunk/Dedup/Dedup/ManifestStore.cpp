@@ -2,6 +2,7 @@
 #include "ManifestStore.h"
 #include <Windows.h>
 #include <io.h>
+#include <exception>
 
 
 using namespace std;
@@ -15,7 +16,7 @@ ManifestStore::~ManifestStore(void)
 {
 }
 
-hash_map<string, ManiNode> ManifestStore::loadChampions(vector<string> chap_names)
+hash_map<string, ManiNode> ManifestStore::loadChampions(vector<string> chap_names) throw (exception)
 {
 	hash_map<string, ManiNode> keys;
 
@@ -23,10 +24,9 @@ hash_map<string, ManiNode> ManifestStore::loadChampions(vector<string> chap_name
 	{
 		ifstream fin("ManifestStore\\" + chap_names[i], ios::in);
 		if (!fin) {
-			cerr << "ERROR: Fail to open a manifest file '" << chap_names[i] << "'" << endl;
-			cerr << "       at ManifestStore::loadChampions" << endl;
-			Sleep(2000);
-			exit(1);
+			string errMsg = "ERROR: Fail to open a manifest file '" + chap_names[i] + "'\n"
+							+ "at ManifestStore::loadChampions";
+			throw exception(errMsg.c_str());
 		}
 
 		string hash, cont;
@@ -44,22 +44,20 @@ hash_map<string, ManiNode> ManifestStore::loadChampions(vector<string> chap_name
 	return keys;
 }
 
-void ManifestStore::createManifest(Manifest manifest)
+void ManifestStore::createManifest(Manifest manifest) throw (exception)
 {
 	if (access(("ManifestStore\\" + manifest.getName()).c_str(), 00) == 0) {  //이미 해당 Manifest file이 존재할 경우
-		cerr << "ERROR: Fail to create a manifest file '" << manifest.getName() << "'" << endl;
-		cerr << "       '" << manifest.getName() << "' is already existed." << endl;
-		cerr << "       at ManifestStore::createManifest" << endl;
-		Sleep(2000);
-		exit(1);
+		string errMsg = "ERROR: Fail to create a manifest file '" + manifest.getName() + "'\n"
+							+ "'" + manifest.getName() + "' is already existed.\n"
+							+ "at ManifestStore::createManifest";
+		throw exception(errMsg.c_str());
 	}
 
 	ofstream fout("ManifestStore\\" + manifest.getName(), ios::out);
 	if (!fout) {
-		cerr << "ERROR: Fail to create a manifest file '" << manifest.getName() << "'" << endl;
-		cerr << "       at ManifestStore::createManifest" << endl;
-		Sleep(2000);
-		exit(1);
+		string errMsg = "ERROR: Fail to create a manifest file '" + manifest.getName() + "'\n"
+							+ "at ManifestStore::createManifest";
+		throw exception(errMsg.c_str());
 	}
 
 	list<ManiNode>* p_nodes = manifest.getNodes();
