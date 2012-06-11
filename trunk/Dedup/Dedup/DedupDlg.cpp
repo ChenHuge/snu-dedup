@@ -358,9 +358,12 @@ void CDedupDlg::StartPerFile(CString filePath_, CString fileName_)
 
 	ChunkManager chkMng(chunkSize, segSize);
 	vector<string> chunkList = chkMng.getChunkList(filePath, ADD_INFO);
-	vector<string>::iterator iter = chunkList.end();
-	iter--;
-	int LL = MyString::string2int(*iter);
+
+	if (chunkList.size() == 0)
+		return;
+
+	int end_idx = chunkList.size() - 1;
+	int LL = MyString::string2int(chunkList[end_idx]);
 	chunkList.pop_back();
 
 	vector<string> hashList = chkMng.getHashedList(&chunkList);
