@@ -76,11 +76,11 @@ size_t ChunkContainer::writeChunk(string chunk, int chunkSize)
 	}
 
 	char* cstr = new char[chunkSize + 1];
-	strcpy(cstr, chunk.c_str());
+	strncpy(cstr, chunk.c_str(), chunkSize);
 
 	size_t write_len = fwrite(cstr, sizeof(char), chunkSize, fp);  // It returns the number of character written.
 
-	delete cstr;
+	delete[] cstr;
 
 	return write_len;
 }

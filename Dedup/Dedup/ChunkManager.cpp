@@ -20,7 +20,7 @@ vector<string> ChunkManager::getChunkList(string filename, int opt)
 {
 	FILE *fp = NULL;
 	vector<string> chunkList;
-	chunkList.clear();
+	//chunkList.clear();
 	int readLen = 0;
 	int def_opt = 0;
 
@@ -31,7 +31,7 @@ vector<string> ChunkManager::getChunkList(string filename, int opt)
 		def_opt = opt;
 	}
 	else {
-		printf("Bad option parameter is given.\n");
+		cout << "Bad option parameter is given." << endl;
 		return (vector<string>)0;
 	}
 
@@ -97,7 +97,7 @@ void ChunkManager::showChunkList(vector<string> chunkList, int opt)
 				cout << "[" << i << "] " << temp << "..." << endl;
 			}
 		//	printf("\nSIZE OF THE LAST CHUNK(index %d) : %s.\nCHUNKSIZE: %d\n", i-1, chunkList[i], chunkSize);
-			printf("Press enter.\n");
+			cout << "Press enter." << endl;
 			getchar();
 		}
 		// 청크를 이어서 출력해준다. 원본 파일을 그대로 보고 싶을 경우 사용.
@@ -198,7 +198,7 @@ string ChunkManager::getHashKey(string data)
 vector<string> ChunkManager::getHashedList(vector<string>* list) 
 {
 	vector<string> hashedList;
-	hashedList.clear();
+	//hashedList.clear();
 	int size = list->size();
 	if(list->empty()) 
 		printf("List is empty.\n");
@@ -216,7 +216,7 @@ vector<string> ChunkManager::getSegment(vector<string>* list, int index)
 		index가 2이면 16~23번 청크.
 		index가 k이면 k*segmentSize~k*segmentSize+segmentSize-1번 청크. */
 	vector<string> segment;
-	segment.clear();
+	//segment.clear();
 	int size = list->size();
 	if(list->empty())
 		printf("List is empty.\n");
@@ -239,7 +239,7 @@ vector<string> ChunkManager::getSample(vector<string>* hashedSegment, int numOfZ
 {
 	vector<string> sampleList;
 	vector<string>::iterator iter;
-	sampleList.clear();
+	//sampleList.clear();
 	int zeroBitCount = 0;
 	if(numOfZeroBits > 8) {
 		printf("Sampling rate too low.\n");
