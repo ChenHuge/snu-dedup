@@ -63,6 +63,7 @@ public:
 	CString mv_Path;
 	afx_msg void OnBnClickedBtnDir();
 	afx_msg void OnBnClickedBtnStart();
+	long numOfFilesInDirectory(CString dirPath);
 	void StartPerDirectory(CString dirPath);
 	void StartPerFile(CString filePath_, CString fileName_);
 	afx_msg void OnStnClickedStaticSplrate();

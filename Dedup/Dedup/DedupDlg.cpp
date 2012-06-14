@@ -294,11 +294,15 @@ void CDedupDlg::OnBnClickedBtnStart()
 	}
 
 	//Result 관련 변수들 초기화
-	numInputFiles = 0;
+	numInputFiles = numOfFilesInDirectory(mv_Path);
 	numInputChunks = 0;
 	numStoredChunks = 0;
 	totalInputSize = 0;
 	totalStoredSize = 0;
+
+	//ProgressBar 초기화
+	mc_Progress.SetRange(0, numInputFiles);
+	mc_Progress.SetPos(0);
 
 	dwStartTime = timeGetTime();
 
@@ -306,6 +310,9 @@ void CDedupDlg::OnBnClickedBtnStart()
 
 	dwEndTime = timeGetTime();
 	dedupTime = dwEndTime - dwStartTime;
+
+	//ChunkContainer 닫기
+	container.closeContainer();
 
 	//Dedup factor 계산
 	if (totalInputSize < totalStoredSize) {
@@ -329,12 +336,34 @@ void CDedupDlg::OnBnClickedBtnStart()
 	MessageBox(_T("완료"), _T("완료"), MB_OK);
 }
 
+long CDedupDlg::numOfFilesInDirectory(CString dirPath)
+{
+	long cnt = 0;
+	CFileFind pFind;
+	BOOL bWorking = pFind.FindFile(dirPath + "\\*.*");
+	
+	while (bWorking) 
+	{
+		bWorking = pFind.FindNextFileW();
+
+		if (pFind.IsDirectory()) {
+			if (pFind.GetFileName() == _T(".") || pFind.GetFileName() == _T(".."))
+				continue;
+
+			cnt += numOfFilesInDirectory(pFind.GetFilePath());
+		} else {
+			cnt++;
+		}
+	}
+
+	return cnt;
+}
 
 void CDedupDlg::StartPerDirectory(CString dirPath)
 {
 	CFileFind pFind;
 	BOOL bWorking = pFind.FindFile(dirPath + "\\*.*");
-
+	
 	while (bWorking) 
 	{
 		bWorking = pFind.FindNextFileW();
@@ -345,7 +374,6 @@ void CDedupDlg::StartPerDirectory(CString dirPath)
 
 			StartPerDirectory(pFind.GetFilePath());
 		} else {
-			numInputFiles++;
 			StartPerFile(pFind.GetFilePath(), pFind.GetFileName());
 		}
 	}
@@ -468,6 +496,10 @@ void CDedupDlg::StartPerFile(CString filePath_, CString fileName_)
 			AfxGetMainWnd()->PostMessage(WM_QUIT);
 		}
 	}
+
+	// ProgressBar 1칸 진행
+	int nPos = mc_Progress.GetPos();
+	mc_Progress.SetPos(nPos + 1);
 }
 
 
