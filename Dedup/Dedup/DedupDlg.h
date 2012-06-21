@@ -90,4 +90,5 @@ public:
 	void addToList(CString name, int numMani);
 	afx_msg void OnNMDblclkList1(NMHDR *pNMHDR, LRESULT *pResult);
 	CString GatherChunks(CString filePath, int numMani);
+	BOOL DeleteDirectory(LPCTSTR lpDirPath);
 };

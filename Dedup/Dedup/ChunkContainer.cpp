@@ -62,7 +62,7 @@ bool ChunkContainer::openContainer(string c_name) throw (exception)
 	return true;
 }
 
-size_t ChunkContainer::writeChunk(string chunk, int chunkSize)
+size_t ChunkContainer::writeChunk(char* chunk, int chunkSize)
 {
 	if (fp == NULL)  // you should call openContainer() before writeChunk()
 		return -2;
@@ -75,12 +75,7 @@ size_t ChunkContainer::writeChunk(string chunk, int chunkSize)
 		openContainer(new_name);
 	}
 
-	char* cstr = new char[chunkSize + 1];
-	strncpy(cstr, chunk.c_str(), chunkSize);
-
-	size_t write_len = fwrite(cstr, sizeof(char), chunkSize, fp);  // It returns the number of character written.
-
-	delete[] cstr;
+	size_t write_len = fwrite(chunk, sizeof(char), chunkSize, fp);  // It returns the number of character written.
 
 	return write_len;
 }
