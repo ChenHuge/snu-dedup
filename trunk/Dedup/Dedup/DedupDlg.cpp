@@ -406,21 +406,16 @@ void CDedupDlg::StartPerFile(CString filePath_, CString fileName_)
 	int numMani = 0;
 
 	ChunkManager chkMng(chunkSize, segSize);
-	vector<string> chunkList = chkMng.getChunkList(filePath, ADD_INFO);
+	vector<char*>* p_chunkList = chkMng.getChunkList(filePath.c_str(), ADD_INFO);
 
-	char* t = chkMng.asdf();
-	char* tt = new char[1025];
-	strcpy(tt, t);
-
-
-	if (chunkList.size() == 0)
+	if (p_chunkList->size() == 0)
 		return;
 
-	int end_idx = chunkList.size() - 1;
-	int LL = MyString::string2int(chunkList[end_idx]);
-	chunkList.pop_back();
+	int end_idx = p_chunkList->size() - 1;
+	int LL = MyString::string2int(p_chunkList->at(end_idx));
+	p_chunkList->pop_back();
 
-	vector<string> hashList = chkMng.getHashedList(&chunkList);
+	vector<string> hashList = chkMng.getHashedList(p_chunkList);
 	
 	string fileName = MyString::CString2string(fileName_);
 
@@ -435,11 +430,11 @@ void CDedupDlg::StartPerFile(CString filePath_, CString fileName_)
 
 	ManifestStore maniStore;
 
-	int numOfSeg = ceil((double)chunkList.size() / (double)segSize);
+	int numOfSeg = ceil((double)p_chunkList->size() / (double)segSize);
 
 	for (int segNum = 0 ; segNum < numOfSeg ; segNum++) {
-		vector<string> segment = chkMng.getSegment(&chunkList, segNum);
-		vector<string> hashs = chkMng.getSegment(&hashList, segNum);
+		vector<char*> segment = chkMng.getSegment(p_chunkList, segNum);
+		vector<string> hashs = chkMng.getSegmentForHash(&hashList, segNum);
 		vector<string> hooks = chkMng.getSample(&hashs, numZeroBit);
 
 		vector<string> champions = sparseIndex.chooseChampions(hooks, maxNumChamp);
@@ -585,6 +580,8 @@ BOOL CDedupDlg::DestroyWindow()
 
 	container.closeContainer();
 
+	DeleteDirectory(_T("Temp"));
+
 	return CDialogEx::DestroyWindow();
 }
 
@@ -612,6 +609,8 @@ void CDedupDlg::OnNMDblclkList1(NMHDR *pNMHDR, LRESULT *pResult)
 	int numMani = MyString::CString2int(mc_List.GetItemText(idx, 1));
 
 	CString tempName = GatherChunks(fileName, numMani);  //chunks를 모은다.
+
+	ShellExecute(NULL, _T("open"), _T("Temp\\") + tempName, NULL, NULL, SW_SHOWNORMAL);
 
 	*pResult = 0;
 }
@@ -686,4 +685,57 @@ CString CDedupDlg::GatherChunks(CString filePath_, int numMani)
 	fclose(fp);
 
 	return tempName;
+}
+
+
+BOOL CDedupDlg::DeleteDirectory(LPCTSTR lpDirPath)
+{
+	if( lpDirPath == NULL )		
+	{		
+		return FALSE;		
+	}		
+	
+	BOOL bRval = FALSE;	
+	int nRval = 0;	
+	CString szNextDirPath   = _T("");	
+	CString szRoot = _T("");	
+	CFileFind find;	
+		
+	// 폴더가 존재 하는 지 확인 검사	
+	bRval = find.FindFile( lpDirPath );
+	
+	if( bRval == FALSE )		
+	{		
+		return bRval;		
+	}
+	
+	while( bRval )		
+	{		
+		bRval = find.FindNextFile();
+
+		// . or .. 인 경우 무시 한다.		
+		if( find.IsDots() == TRUE )			
+		{			
+			continue;			
+		}
+		
+		// Directory 일 경우		
+		if( find.IsDirectory() )			
+		{			
+			szNextDirPath.Format(_T("%s\\*.*") , find.GetFilePath() );
+
+			// Recursion function 호 출			
+			DeleteDirectory( szNextDirPath );			
+		}			
+		// file일 경우 		
+		else			
+		{			
+			// 파일 삭제			
+			::DeleteFile( find.GetFilePath() );			
+		}		
+	}	
+	szRoot = find.GetRoot();	
+	find.Close();
+	bRval = RemoveDirectory( szRoot );         	
+	return bRval;
 }
