@@ -20,6 +20,7 @@ private:
 	int segmentSize;
 	int lastLength;
 public:
+	char* asdf(void);
 /*	enum {GET_CHUNK_ONLY  = 0, ADD_INFO = 1,
 		SHOW_ARRANGED = 0, SHOW_ALL = 1}; */
 	ChunkManager(int CS, int SS);

@@ -8,6 +8,12 @@ ChunkManager::ChunkManager(int CS, int SS)
 	chunkSize = CS;
 	segmentSize = SS;
 }
+char* ChunkManager::asdf(void)
+{
+	char* t = new char[chunkSize + 1];
+	strcpy(t, "asdfasdfasdf");
+	return t;
+}
 
 /* 파일을 여는데 성공한 경우 청킹된 벡터를 리턴, 아닌 경우 빈 벡터를 리턴한다.
 	   둘째 인자로 GET_CHUNK_ONLY를 주면 순수하게 청크들로만 이루어진 벡터를 얻고,

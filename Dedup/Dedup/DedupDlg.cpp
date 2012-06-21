@@ -101,6 +101,7 @@ void CDedupDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_EDIT_RES_TOTSTOREDSIZE, mv_TotalStoredSize);
 	DDX_Text(pDX, IDC_EDIT_RES_DEDUPTIME, mv_DedupTime);
 	DDX_Text(pDX, IDC_EDIT_RES_DEDUPFACTOR, mv_DedupFactor);
+	DDX_Control(pDX, IDC_LIST1, mc_List);
 }
 
 BEGIN_MESSAGE_MAP(CDedupDlg, CDialogEx)
@@ -109,6 +110,7 @@ BEGIN_MESSAGE_MAP(CDedupDlg, CDialogEx)
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDC_BTN_DIR, &CDedupDlg::OnBnClickedBtnDir)
 	ON_BN_CLICKED(IDC_BTN_START, &CDedupDlg::OnBnClickedBtnStart)
+	ON_NOTIFY(NM_DBLCLK, IDC_LIST1, &CDedupDlg::OnNMDblclkList1)
 END_MESSAGE_MAP()
 
 
@@ -167,8 +169,26 @@ BOOL CDedupDlg::OnInitDialog()
 		}
 	}
 
+	//Temp 폴더가 존재하는지 확인. 없으면 생성
+    bRet = pFind.FindFile(L"Temp\\" + strFile);
+	if (!bRet) {
+		bRet = CreateDirectory(L"Temp\\", NULL);
+		if (!bRet) {
+			MessageBox(_T("ERROR: fail to create Temp directory!"), _T("ERROR - OnInitDialog"), MB_OK);
+			exit(1);
+		}
+	}
+
 	//SparseIndex load
 	sparseIndex.load();
+
+	//리스트컨트롤 초기화
+	//mc_List.ShowScrollBar(SB_HORZ);
+	mc_List.InsertColumn(0, _T("Path"), LVCFMT_LEFT, 500);
+	mc_List.InsertColumn(1, _T("# of Manifest"), LVCFMT_LEFT, 100);
+
+	//리스트컨트롤에 아이템 추가
+	RefreshList();
 
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
@@ -383,9 +403,15 @@ void CDedupDlg::StartPerDirectory(CString dirPath)
 void CDedupDlg::StartPerFile(CString filePath_, CString fileName_)
 {
 	string filePath = MyString::CString2string(filePath_);
+	int numMani = 0;
 
 	ChunkManager chkMng(chunkSize, segSize);
 	vector<string> chunkList = chkMng.getChunkList(filePath, ADD_INFO);
+
+	char* t = chkMng.asdf();
+	char* tt = new char[1025];
+	strcpy(tt, t);
+
 
 	if (chunkList.size() == 0)
 		return;
@@ -489,6 +515,7 @@ void CDedupDlg::StartPerFile(CString filePath_, CString fileName_)
 
 		try {
 			maniStore.createManifest(manifest);
+			numMani++;
 		}
 		catch (exception &ex) {
 			MessageBox((CString)ex.what(), _T("Catched at StartPerFile"), MB_OK);
@@ -497,9 +524,56 @@ void CDedupDlg::StartPerFile(CString filePath_, CString fileName_)
 		}
 	}
 
+	//ListCtrl에 추가
+	addToList(filePath_, numMani);
+
 	// ProgressBar 1칸 진행
 	int nPos = mc_Progress.GetPos();
 	mc_Progress.SetPos(nPos + 1);
+}
+
+
+void CDedupDlg::RefreshList(void)
+{
+	CFileFind pFind;
+	BOOL bWorking = pFind.FindFile(_T("ManifestStore\\*.*"));
+	string filename = "";
+	int nCount = 0;
+
+	mc_List.DeleteAllItems();
+	
+	while (bWorking) 
+	{
+		bWorking = pFind.FindNextFileW();
+
+		if (pFind.IsDirectory()) {
+			if (pFind.GetFileName() == _T(".") || pFind.GetFileName() == _T(".."))
+				continue;
+		} else {
+			string name = MyString::CString2string(pFind.GetFileName());
+
+			string::size_type pos = name.find_last_of("__");
+			name = name.substr(0, pos-1);
+
+			pos = name.find(";", 0);
+			if (pos == 1)
+				name.replace(name.begin() + pos, name.begin() + pos + 1, ":");
+
+			name = MyString::replaceAll(name, ";", "\\");
+
+			if (filename == name) {
+				int num = MyString::CString2int(mc_List.GetItemText(nCount-1, 1));
+				mc_List.SetItemText(nCount-1, 1, MyString::int2CString(num+1));
+				continue;
+			}
+			else
+				filename = name;
+
+			mc_List.InsertItem(nCount, MyString::string2CString(name));
+			mc_List.SetItemText(nCount, 1, _T("1"));
+			nCount++;
+		}
+	}
 }
 
 
@@ -512,4 +586,104 @@ BOOL CDedupDlg::DestroyWindow()
 	container.closeContainer();
 
 	return CDialogEx::DestroyWindow();
+}
+
+
+void CDedupDlg::addToList(CString name, int numMani)
+{
+	int nCount = mc_List.GetItemCount();
+	mc_List.InsertItem(nCount, name);
+	mc_List.SetItemText(nCount, 1, MyString::int2CString(numMani));
+}
+
+
+void CDedupDlg::OnNMDblclkList1(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
+	
+	NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)pNMHDR;
+	int idx = pNMListView->iItem;
+
+	if (idx < 0)
+		return;
+
+	//더블클릭한 파일의 이름과 manifest 갯수를 가져온다.
+	CString fileName = (mc_List.GetItemText(idx, 0));
+	int numMani = MyString::CString2int(mc_List.GetItemText(idx, 1));
+
+	CString tempName = GatherChunks(fileName, numMani);  //chunks를 모은다.
+
+	*pResult = 0;
+}
+
+
+CString CDedupDlg::GatherChunks(CString filePath_, int numMani)
+{
+	string fileName = MyString::CString2string(filePath_);
+	fileName = MyString::replaceAll(fileName, "\\", ";");
+	fileName = MyString::replaceAll(fileName, ":", ";");
+
+	CFileFind pFind;
+	CString tempName = MyString::string2CString(fileName);
+	BOOL res = pFind.FindFile(_T("Temp\\") + tempName);  //이미 해당 TempFile이 존재할 경우
+	if (res)
+		return tempName;
+	pFind.Close();
+
+	//본 파일을 저장하기 위한 임시공간(TempFile)을 만든다.
+	//TempFile이름은 해당 파일의 이름과 같다. (\를 ;로 바꾼것)
+	FILE* fp = fopen(("Temp\\" + fileName).c_str(), "wb");
+	if (fp == NULL) {
+		MessageBox(filePath_ + _T(" 파일을 위한 임시 공간을 할당하는데 실패했습니다."), _T("파일 열기 오류"), MB_OK);
+		return _T("");
+	}
+
+	FILE* read_fp = NULL;
+
+	//각 Manifest를 열어 chunks를 모은다.
+	for (int i = 0 ; i < numMani ; i++) {
+		string maniName = fileName + "__m" + MyString::int2string(i) + ".mani";
+		ifstream fin("ManifestStore\\" + maniName, ios::in);
+		if (!fin) {
+			MessageBox(_T("Manifest를 여는데 실패했습니다.\n\n") + MyString::string2CString(maniName), _T("파일 열기 오류"), MB_OK);
+			fclose(fp);
+			return _T("");
+		}
+
+		string hash, cont, old_cont = "";
+		fpos_t pos;
+		size_t length;
+		
+		while (fin >> hash >> cont >> pos >> length) 
+		{
+			//이미 열린 chunk container가 아닌 경우 열어야 한다.
+			if (read_fp == NULL || old_cont != cont) {  
+				if (read_fp != NULL)
+					fclose(read_fp);
+
+				read_fp = fopen(("ChunkContainer\\" + cont).c_str(), "rb");
+				if (read_fp == NULL) {
+					MessageBox(_T("ChunkContainer를 여는데 실패했습니다.\n\n") + MyString::string2CString(cont), _T("파일 열기 오류"), MB_OK);
+					fclose(fp);
+					fin.close();
+					return _T("");
+				}
+
+				old_cont = cont;
+			}
+
+			char* chunk = new char[length + 1];
+			fseek(read_fp, pos, SEEK_SET);
+			size_t read_len = fread(chunk, sizeof(char), length, read_fp);
+			fwrite(chunk, sizeof(char), read_len, fp);
+			delete[] chunk;
+		}
+
+		fin.close();
+	}
+	
+	fclose(read_fp);
+	fclose(fp);
+
+	return tempName;
 }
