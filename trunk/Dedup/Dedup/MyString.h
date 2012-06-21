@@ -35,6 +35,12 @@ public:
 		return _ttoi(cstr);
 	}
 
+	static CString int2CString(int num) {
+		CString cstr;
+		cstr.Format(_T("%d"), num);
+		return cstr;
+	}
+
 	static CString string2CString(std::string str) {
 		CString cstr(str.c_str());
 		return cstr;

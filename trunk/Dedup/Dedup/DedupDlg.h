@@ -85,4 +85,9 @@ public:
 	CString mv_TotalStoredSize;
 	CString mv_DedupTime;
 	CString mv_DedupFactor;
+	CListCtrl mc_List;
+	void RefreshList(void);
+	void addToList(CString name, int numMani);
+	afx_msg void OnNMDblclkList1(NMHDR *pNMHDR, LRESULT *pResult);
+	CString GatherChunks(CString filePath, int numMani);
 };
