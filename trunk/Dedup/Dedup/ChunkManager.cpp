@@ -104,7 +104,7 @@ void ChunkManager::writeChunkList(vector<char*>* chunkList, char* filename) {
 
 
 /* 데이터를 받아서 SHA-1에 따른 해시 값을 반환하는 메서드이다. */
-string ChunkManager::getHashKey(char* data) 
+string ChunkManager::getHashKey(char* data, bool last) 
 {
 	string str = "";
 	str.assign(data);
@@ -115,12 +115,17 @@ string ChunkManager::getHashKey(char* data)
 	int i=0, str_len;
 	sha.Reset();
 
-	str_len = strlen(str.c_str());
+	/*str_len = strlen(str.c_str());
 
 	while(i<str_len) {
 		sha.Input(str[i]);
 		i++;
-	}
+	}*/
+
+	if (last)
+		sha.Input(data, chunkSize);
+	else
+		sha.Input(data, lastLength);
 		
 	if(!sha.Result(m_d)) {
 		printf("sha: could not compute message digest for %s\n", data);
@@ -144,7 +149,10 @@ vector<string> ChunkManager::getHashedList(vector<char*>* list)
 		printf("List is empty.\n");
 	else {
 		for(int i=0; i<size; i++) {
-			hashedList.push_back(getHashKey((*list)[i]));
+			if (i + 1 == size)
+				hashedList.push_back(getHashKey((*list)[i], true));
+			else
+				hashedList.push_back(getHashKey((*list)[i], false));
 		}
 	}
 

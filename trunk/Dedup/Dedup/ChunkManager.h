@@ -43,7 +43,7 @@ public:
 	void writeChunkList(vector<char*>* chunkList, char* filename);
 
 	/* 데이터를 받아서 SHA-1에 따른 해시 값을 반환하는 메서드이다. */
-	string getHashKey(char* data);
+	string getHashKey(char* data, bool last);
 
 	/* 인자로 전달된 리스트의 모든 chunk들에 대한 SHA-1 해시 값을 구해 리스트를 만들어 반환한다. */
 	vector<string> getHashedList(vector<char*>* list);
