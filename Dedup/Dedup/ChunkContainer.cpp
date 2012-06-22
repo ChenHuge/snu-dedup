@@ -67,6 +67,8 @@ size_t ChunkContainer::writeChunk(char* chunk, int chunkSize)
 	if (fp == NULL)  // you should call openContainer() before writeChunk()
 		return -2;
 
+	fseek(fp, 0, SEEK_END);
+
 	// 컨테이너의 크기가 1GB 이상이면 닫고, 새로운 컨테이너 열기
 	if (ftell(fp) >= 1024 * 1024 * 1024) {
 		int cur_name_num = MyString::string2int(container_name);
@@ -96,7 +98,7 @@ fpos_t ChunkContainer::getCurPos(void) throw (exception)
 	if (fp == NULL) {
 		throw exception("ERROR: file isn't opened. ChunkContainer::getCurPos");
 	}
-
+	fseek(fp, 0, SEEK_END);
 	fpos_t pos;
 	if (fgetpos(fp, &pos) != 0) {
 		throw exception("ERROR: fail to fgetpos(). ChunkContainer::getCurPos");
