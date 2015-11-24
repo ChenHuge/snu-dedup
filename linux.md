@@ -1,0 +1,1 @@
+http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.4.2.tar.bz2
